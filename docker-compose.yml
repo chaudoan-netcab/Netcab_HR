@@ -1,0 +1,25 @@
+# Chạy PostgreSQL bằng Docker: docker compose up -d
+# Ghim tên dự án để giữ đúng container + volume dữ liệu cũ khi đổi tên thư mục
+name: hr-kpi-app
+# Đổi cổng máy host bằng biến DB_PORT trong .env (mặc định 5432) nếu cổng 5432 đã bị chiếm
+services:
+  db:
+    image: postgres:16
+    container_name: netcab-hr-kpi-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hrapp
+      POSTGRES_PASSWORD: hrapp
+      POSTGRES_DB: hr_kpi
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hrapp -d hr_kpi"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

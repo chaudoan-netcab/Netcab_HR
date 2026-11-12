@@ -1,0 +1,14 @@
+node_modules
+.next
+.env
+uploads
+*.tsbuildinfo
+next-env.d.ts
+prisma.sandbox.config.ts
+
+# Máy cục bộ
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.claude/

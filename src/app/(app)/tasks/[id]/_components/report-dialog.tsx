@@ -1,0 +1,138 @@
+"use client";
+// "Báo cáo hoàn thành" / "Báo cáo lại": kết quả thực hiện (bắt buộc) + file minh chứng.
+// TODO(backend): chưa có nơi lưu file minh chứng (bảng TaskAttachment + kho file). Hiện chỉ gửi phần nội dung;
+//                danh sách file chỉ nằm trên giao diện và KHÔNG được gửi lên server (ô chọn file không có name).
+import { useRef, useState } from "react";
+import { FileText, Paperclip, UploadCloud, X } from "lucide-react";
+import { Modal, SubmitButton } from "@/components/modal";
+
+const MAX_FILES = 10;
+const fmtSize = (b: number) => (b >= 1_048_576 ? `${(b / 1_048_576).toFixed(1).replace(".", ",")} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
+
+export function ReportDialog({
+  title,
+  taskTitle,
+  action,
+  defaultNote,
+  returnReason,
+  onClose,
+}: {
+  title: string;
+  taskTitle: string;
+  action: (fd: FormData) => void | Promise<void>;
+  defaultNote?: string | null;
+  returnReason?: string | null;
+  onClose: () => void;
+}) {
+  const [files, setFiles] = useState<File[]>([]);
+  const [drag, setDrag] = useState(false);
+  const picker = useRef<HTMLInputElement>(null);
+
+  const add = (list: FileList | null) => {
+    if (!list) return;
+    setFiles((cur) => {
+      const seen = new Set(cur.map((f) => `${f.name}:${f.size}`));
+      return [...cur, ...[...list].filter((f) => !seen.has(`${f.name}:${f.size}`))].slice(0, MAX_FILES);
+    });
+  };
+
+  return (
+    <Modal
+      title={title}
+      subtitle={taskTitle}
+      onClose={onClose}
+      action={action}
+      size="lg"
+      footer={
+        <>
+          <button type="button" onClick={onClose} className="btn">
+            Hủy
+          </button>
+          <SubmitButton name="intent" value="submit">
+            Gửi báo cáo
+          </SubmitButton>
+        </>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        {returnReason && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            <span className="font-medium">Lý do trả lại:</span> {returnReason}
+          </div>
+        )}
+        <label className="block">
+          <span className="label">
+            Kết quả thực hiện <span className="text-red-600">*</span>
+          </span>
+          <textarea
+            name="note"
+            required
+            defaultValue={defaultNote ?? ""}
+            rows={5}
+            className="input min-h-32"
+            placeholder="Đã làm được gì, kết quả đạt được, đường dẫn tài liệu kết quả (nếu có)"
+          />
+        </label>
+
+        <div>
+          <span className="label">File minh chứng</span>
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDrag(true);
+            }}
+            onDragLeave={() => setDrag(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDrag(false);
+              add(e.dataTransfer.files);
+            }}
+            onClick={() => picker.current?.click()}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), picker.current?.click())}
+            role="button"
+            tabIndex={0}
+            className={`flex cursor-pointer flex-col items-center gap-1 rounded-lg border-2 border-dashed px-4 py-5 text-center transition ${
+              drag ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-slate-50/60 hover:border-brand-200 hover:bg-brand-50/40"
+            }`}
+          >
+            <UploadCloud size={22} className={drag ? "text-brand-600" : "text-slate-400"} aria-hidden />
+            <div className="text-sm text-slate-700">
+              Kéo thả file vào đây hoặc <span className="font-medium text-brand-600">chọn file</span>
+            </div>
+            <div className="text-xs text-slate-400">Tối đa {MAX_FILES} file · ảnh, PDF, Word, Excel</div>
+          </div>
+          {/* Không có name → không gửi file lên server (xem TODO đầu file) */}
+          <input ref={picker} type="file" multiple className="hidden" onChange={(e) => (add(e.target.files), (e.target.value = ""))} />
+
+          {files.length > 0 && (
+            <ul className="mt-2 flex flex-col divide-y divide-slate-100 rounded-lg border border-slate-200">
+              {files.map((f, i) => (
+                <li key={`${f.name}:${f.size}`} className="flex items-center gap-2.5 px-3 py-2 text-sm">
+                  <FileText size={16} className="shrink-0 text-slate-400" aria-hidden />
+                  <span className="min-w-0 flex-1 break-all text-slate-700">
+                    {f.name}
+                  </span>
+                  <span className="shrink-0 text-xs tabular-nums text-slate-400">{fmtSize(f.size)}</span>
+                  <button
+                    type="button"
+                    onClick={() => setFiles((cur) => cur.filter((_, j) => j !== i))}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-red-50 hover:text-red-600"
+                    aria-label={`Bỏ file ${f.name}`}
+                  >
+                    <X size={15} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {files.length > 0 && (
+            <p className="mt-2 flex items-start gap-1.5 text-xs text-amber-700">
+              <Paperclip size={13} className="mt-0.5 shrink-0" aria-hidden />
+              Bản thử nghiệm: hệ thống chưa lưu file đính kèm, chỉ gửi phần nội dung. Vui lòng ghi đường dẫn tài liệu vào ô kết quả.
+            </p>
+          )}
+        </div>
+      </div>
+    </Modal>
+  );
+}

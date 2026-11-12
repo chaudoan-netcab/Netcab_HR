@@ -1,0 +1,600 @@
+// Netcab HR & KPI — cấu trúc database (PostgreSQL)
+// Giải thích từng bảng: xem docs/02-thiet-ke-he-thong.md
+
+generator client {
+  provider   = "prisma-client-js"
+  // Chạy không cần Rust engine (dùng driver adapter "pg") — nhẹ hơn, giống mặc định của Prisma 7
+  engineType = "client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────── Danh mục (enum) ─────────────
+
+enum Role {
+  ADMIN
+  HR
+  MANAGER
+  EMPLOYEE
+}
+
+enum EmployeeType {
+  INTERN // Thực tập sinh
+  PROBATION // Thử việc
+  OFFICIAL // Chính thức
+  COLLABORATOR // Cộng tác viên
+}
+
+enum EmployeeStatus {
+  ACTIVE // Đang làm việc
+  ON_LEAVE // Tạm nghỉ (thai sản, nghỉ dài ngày…)
+  RESIGNED // Đã nghỉ việc
+}
+
+enum JobLevel {
+  STAFF // Nhân viên – Chuyên viên
+  SUPERVISOR // Giám sát – Trưởng nhóm trở lên
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum DocStatus {
+  SUBMITTED // Đã nộp, chờ HR kiểm tra
+  VERIFIED // HR đã kiểm tra, hợp lệ
+  REJECTED // Không hợp lệ, cần nộp lại
+}
+
+enum ContractType {
+  INTERNSHIP // Thỏa thuận thực tập
+  PROBATION // HĐ thử việc
+  FIXED_TERM // HĐLĐ xác định thời hạn
+  INDEFINITE // HĐLĐ không xác định thời hạn
+  SERVICE // HĐ dịch vụ / cộng tác viên
+}
+
+enum LeaveType {
+  ANNUAL // Nghỉ phép năm (trừ quỹ phép)
+  SICK // Nghỉ ốm
+  PERSONAL_PAID // Việc riêng có lương (cưới, tang…)
+  UNPAID // Nghỉ không lương
+  MATERNITY // Thai sản
+  BUSINESS_TRIP // Đi công tác
+  OVERTIME // Làm thêm giờ (tính theo giờ)
+  LATE_EARLY // Đi muộn / về sớm (tính theo giờ)
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum KpiPeriodType {
+  MONTH
+  QUARTER
+}
+
+// 4 kiểu công thức lấy đúng từ file "Netcab KPI HR và kho.xlsx"
+enum KpiFormula {
+  HIGHER_BETTER // Càng cao càng tốt: tỉ trọng × MIN(1, thực hiện / chỉ tiêu)
+  LOWER_BETTER // Càng thấp càng tốt: =0 → đủ điểm; còn lại tỉ trọng × MIN(1, chỉ tiêu / thực hiện)
+  ZERO_TOLERANCE // Chỉ tiêu 0 vụ: mỗi vụ trừ 50% (0 vụ 100%, 1 vụ 50%, ≥2 vụ 0%)
+  VIOLATION_STEPS // Theo số lần vi phạm: ≤1 lần 100%, 2 lần 70%, 3 lần 50%, ≥4 lần 0%
+}
+
+enum KpiStatus {
+  DRAFT // Nhân viên đang nhập kết quả
+  SUBMITTED // Chờ quản lý trực tiếp duyệt
+  MANAGER_APPROVED // Chờ HR & Admin xác nhận
+  COMPLETED // Hoàn tất
+}
+
+enum ReviewTemplate {
+  STAFF // BM1-003 – Nhân viên, Chuyên viên (20 tiêu chí, tối đa 200 điểm)
+  SUPERVISOR // BM1-003 – Giám sát, Trưởng nhóm trở lên (24 tiêu chí, tối đa 240 điểm)
+}
+
+enum ReviewStatus {
+  SELF_REVIEW // Nhân viên tự đánh giá
+  MANAGER_REVIEW // Người đánh giá (quản lý trực tiếp) chấm
+  EMPLOYEE_ACK // Nhân viên xem, ghi ý kiến, xác nhận
+  HOD_APPROVAL // Trưởng bộ phận (HOD) duyệt
+  COMPLETED
+}
+
+enum CycleStatus {
+  OPEN
+  CLOSED
+}
+
+enum ContractRecommendation {
+  KEEP // Giữ lại
+  TERMINATE // Chấm dứt HĐ
+  OTHER // Đề nghị khác
+}
+
+enum FollowUpStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum FollowUpSource {
+  REVIEW // Từ Phần D phiếu đánh giá
+  KPI // Từ phiếu KPI chưa đạt
+  MANUAL // Tự tạo
+}
+
+enum TaskStatus {
+  TODO // Chưa bắt đầu
+  IN_PROGRESS // Đang làm
+  REVIEW // Đã báo cáo xong, chờ người giao xác nhận
+  DONE // Người giao xác nhận đạt
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+enum ChecklistKind {
+  ONBOARDING
+  OFFBOARDING
+}
+
+enum AssigneeRole {
+  HR
+  IT
+  MANAGER
+  EMPLOYEE
+}
+
+// ───────────── Tài khoản & tổ chức ─────────────
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(EMPLOYEE)
+  active       Boolean   @default(true)
+  employeeId   String?   @unique
+  employee     Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  verifiedDocuments EmployeeDocument[] @relation("DocVerifier")
+  decidedRequests   LeaveRequest[]     @relation("RequestDecider")
+  createdKpiPlans   KpiPlan[]          @relation("KpiCreator")
+  createdFollowUps  FollowUp[]         @relation("FollowUpCreator")
+  followUpNotes     FollowUpNote[]
+  doneTasks         ChecklistTask[]
+  createdTasks      Task[]             @relation("TaskCreator")
+  taskComments      TaskComment[]
+}
+
+model Department {
+  id        String       @id @default(cuid())
+  code      String       @unique
+  name      String
+  parentId  String?
+  parent    Department?  @relation("DeptTree", fields: [parentId], references: [id])
+  children  Department[] @relation("DeptTree")
+  headId    String?
+  head      Employee?    @relation("DeptHead", fields: [headId], references: [id], onDelete: SetNull)
+  employees Employee[]   @relation("DeptMembers")
+}
+
+model Employee {
+  id                String    @id @default(cuid())
+  code              String    @unique // MSNV
+  fullName          String
+  gender            Gender?
+  dateOfBirth       DateTime? @db.Date
+  placeOfBirth      String?
+  hometown          String? // Quê quán
+  maritalStatus     String?
+  idNumber          String? // Số CCCD
+  idIssueDate       DateTime? @db.Date
+  idIssuePlace      String?
+  taxCode           String? // MST cá nhân
+  socialInsuranceNo String? // Số sổ BHXH
+
+  phone             String?
+  personalEmail     String?
+  workEmail         String?
+  permanentAddress  String?
+  currentAddress    String?
+  emergencyName     String?
+  emergencyRelation String?
+  emergencyPhone    String?
+
+  departmentId    String?
+  department      Department?    @relation("DeptMembers", fields: [departmentId], references: [id], onDelete: SetNull)
+  position        String? // Chức danh
+  jobLevel        JobLevel       @default(STAFF)
+  employeeType    EmployeeType   @default(OFFICIAL)
+  status          EmployeeStatus @default(ACTIVE)
+  managerId       String?
+  manager         Employee?      @relation("ManagerReports", fields: [managerId], references: [id], onDelete: SetNull)
+  reports         Employee[]     @relation("ManagerReports")
+  joinDate        DateTime?      @db.Date
+  officialDate    DateTime?      @db.Date // Ngày lên chính thức
+  leaveDate       DateTime?      @db.Date // Ngày nghỉ việc
+  workLocation    String?
+  annualLeaveDays Float          @default(12) // Số ngày phép năm được hưởng
+
+  educationLevel String?
+  school         String?
+  major          String?
+  graduationYear Int?
+
+  // Riêng thực tập sinh (theo Giấy giới thiệu của nhà trường)
+  internSchool String?
+  internStart  DateTime?  @db.Date
+  internEnd    DateTime?  @db.Date
+  mentorId     String?
+  mentor       Employee?  @relation("Mentor", fields: [mentorId], references: [id], onDelete: SetNull)
+  mentees      Employee[] @relation("Mentor")
+
+  bankAccount String?
+  bankName    String?
+  bankBranch  String?
+  note        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user             User?
+  headOf           Department[]       @relation("DeptHead")
+  documents        EmployeeDocument[]
+  contracts        Contract[]
+  leaveRequests    LeaveRequest[]     @relation("RequestOwner")
+  leaveToApprove   LeaveRequest[]     @relation("RequestApprover")
+  kpiPlans         KpiPlan[]
+  reviews          Review[]           @relation("ReviewEmployee")
+  reviewsAsManager Review[]           @relation("ReviewReviewer")
+  reviewsAsHod     Review[]           @relation("ReviewHod")
+  followUps        FollowUp[]         @relation("FollowUpEmployee")
+  ownedFollowUps   FollowUp[]         @relation("FollowUpOwner")
+  checklists       Checklist[]
+  tasks            Task[]             @relation("TaskAssignee")
+  collabTasks      Task[]             @relation("TaskCollaborators")
+}
+
+// ───────────── Hồ sơ giấy tờ ─────────────
+
+model DocumentType {
+  id                   String             @id @default(cuid())
+  name                 String
+  description          String?
+  requiresNotarization Boolean            @default(false) // Yêu cầu bản công chứng
+  maxAgeMonths         Int? // Ví dụ giấy khám sức khỏe: không quá 6 tháng
+  appliesTo            EmployeeType[] // Loại nhân sự phải nộp
+  sortOrder            Int                @default(0)
+  active               Boolean            @default(true)
+  documents            EmployeeDocument[]
+}
+
+model EmployeeDocument {
+  id             String       @id @default(cuid())
+  employeeId     String
+  employee       Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  documentTypeId String
+  documentType   DocumentType @relation(fields: [documentTypeId], references: [id], onDelete: Cascade)
+  status         DocStatus    @default(SUBMITTED)
+  isNotarized    Boolean      @default(false)
+  issueDate      DateTime?    @db.Date // Ngày cấp / ngày ký
+  submittedAt    DateTime?    @db.Date
+  note           String?
+  fileName       String?
+  filePath       String?
+  fileSize       Int?
+  mimeType       String?
+  verifiedById   String?
+  verifiedBy     User?        @relation("DocVerifier", fields: [verifiedById], references: [id], onDelete: SetNull)
+  verifiedAt     DateTime?
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([employeeId, documentTypeId])
+}
+
+// ───────────── Hợp đồng ─────────────
+
+model Contract {
+  id         String       @id @default(cuid())
+  employeeId String
+  employee   Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  number     String // Số hợp đồng
+  type       ContractType
+  startDate  DateTime     @db.Date
+  endDate    DateTime?    @db.Date // Trống = không xác định thời hạn
+  signedDate DateTime?    @db.Date
+  position   String?
+  note       String?
+  fileName   String?
+  filePath   String?
+  createdAt  DateTime     @default(now())
+}
+
+// ───────────── Nghỉ phép / đơn từ ─────────────
+
+model LeaveRequest {
+  id           String        @id @default(cuid())
+  employeeId   String
+  employee     Employee      @relation("RequestOwner", fields: [employeeId], references: [id], onDelete: Cascade)
+  type         LeaveType
+  startDate    DateTime      @db.Date
+  endDate      DateTime      @db.Date
+  days         Float         @default(0)
+  hours        Float?
+  reason       String
+  status       RequestStatus @default(PENDING)
+  approverId   String? // Người cần duyệt (quản lý trực tiếp)
+  approver     Employee?     @relation("RequestApprover", fields: [approverId], references: [id], onDelete: SetNull)
+  decidedById  String?
+  decidedBy    User?         @relation("RequestDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedAt    DateTime?
+  decisionNote String?
+  createdAt    DateTime      @default(now())
+}
+
+// ───────────── KPI theo tháng / quý ─────────────
+
+model KpiTemplate {
+  id        String            @id @default(cuid())
+  name      String // VD: BẢNG KPI — NHÂN VIÊN KHO
+  subtitle  String? // VD: (Trực thuộc Phòng HR & Admin)
+  active    Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  items     KpiTemplateItem[]
+  plans     KpiPlan[]
+}
+
+model KpiTemplateItem {
+  id          String      @id @default(cuid())
+  templateId  String
+  template    KpiTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  section     String // Nhóm KRA, VD: "A. KRA 1 — HIỆU QUẢ TUYỂN DỤNG"
+  name        String
+  measurement String? // Công thức / cách đo lường
+  unit        String // %, vụ, …
+  target      Float // Chỉ tiêu (1 = 100%)
+  weight      Float // Tỉ trọng (0.15 = 15%)
+  formula     KpiFormula  @default(HIGHER_BETTER)
+  note        String?
+  sortOrder   Int         @default(0)
+}
+
+model KpiPlan {
+  id               String        @id @default(cuid())
+  employeeId       String
+  employee         Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  templateId       String?
+  template         KpiTemplate?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  title            String
+  subtitle         String?
+  periodType       KpiPeriodType
+  year             Int
+  period           Int // Tháng 1–12 hoặc Quý 1–4
+  status           KpiStatus     @default(DRAFT)
+  evaluationDate   DateTime?     @db.Date
+  score            Float? // Tổng % hoàn thành (0–1)
+  grade            String?
+  managerComment   String?
+  employeeSignedAt DateTime?
+  managerSignedAt  DateTime?
+  hrSignedAt       DateTime?
+  createdById      String?
+  createdBy        User?         @relation("KpiCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt        DateTime      @default(now())
+  items            KpiPlanItem[]
+  followUps        FollowUp[]
+
+  @@unique([employeeId, periodType, year, period])
+}
+
+model KpiPlanItem {
+  id          String     @id @default(cuid())
+  planId      String
+  plan        KpiPlan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  section     String
+  name        String
+  measurement String?
+  unit        String
+  target      Float
+  actual      Float? // Mức độ thực hiện
+  weight      Float
+  formula     KpiFormula
+  note        String?
+  sortOrder   Int        @default(0)
+}
+
+// ───────────── Đánh giá thành tích (BM1-003) ─────────────
+
+model ReviewCycle {
+  id          String      @id @default(cuid())
+  name        String // VD: Đánh giá cuối năm 2026
+  purpose     String // Mục đích đánh giá
+  periodStart DateTime    @db.Date
+  periodEnd   DateTime    @db.Date
+  dueDate     DateTime?   @db.Date
+  kpiWeight   Int         @default(50) // % điểm KPI trong điểm tổng hợp cuối năm (phần còn lại là năng lực BM1-003)
+  status      CycleStatus @default(OPEN)
+  createdAt   DateTime    @default(now())
+  reviews     Review[]
+}
+
+model Review {
+  id         String         @id @default(cuid())
+  cycleId    String
+  cycle      ReviewCycle    @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  employeeId String
+  employee   Employee       @relation("ReviewEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+  template   ReviewTemplate
+  status     ReviewStatus   @default(SELF_REVIEW)
+  reviewerId String?
+  reviewer   Employee?      @relation("ReviewReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  hodId      String?
+  hod        Employee?      @relation("ReviewHod", fields: [hodId], references: [id], onDelete: SetNull)
+
+  contributions          String? // Phần B: đóng góp, cải tiến
+  bonus                  Int                     @default(0) // Phần B: 0 / 1 / 3 / 5 (% cộng thẳng vào tỷ lệ)
+  shortcomings           String? // Phần C: thiếu sót
+  contractRecommendation ContractRecommendation?
+  contractNote           String?
+  devPlan                Boolean? // Phần E: đề nghị Kế hoạch phát triển quản lý
+  devPlanReason          String?
+  employeeComment        String?
+  hodComment             String?
+  remarks                String? // Ghi chú trong bảng tổng hợp
+
+  totalScore Int?
+  maxScore   Int
+  rate       Float? // Tỷ lệ đạt được (%), đã cộng điểm Phần B
+  grade      String? // A–E
+
+  selfSubmittedAt    DateTime?
+  managerSubmittedAt DateTime?
+  employeeAckAt      DateTime?
+  hodApprovedAt      DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  scores    ReviewScore[]
+  followUps FollowUp[]
+
+  @@unique([cycleId, employeeId])
+}
+
+model ReviewScore {
+  id           String @id @default(cuid())
+  reviewId     String
+  review       Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  criterionKey String // Khóa tiêu chí, xem src/lib/review-templates.ts
+  selfScore    Int?
+  managerScore Int?
+
+  @@unique([reviewId, criterionKey])
+}
+
+// ───────────── Follow-up ─────────────
+
+model FollowUp {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  employeeId  String // Nhân viên được theo dõi
+  employee    Employee       @relation("FollowUpEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+  ownerId     String? // Người chịu trách nhiệm theo dõi
+  owner       Employee?      @relation("FollowUpOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  dueDate     DateTime?      @db.Date
+  status      FollowUpStatus @default(OPEN)
+  source      FollowUpSource @default(MANUAL)
+  reviewId    String?
+  review      Review?        @relation(fields: [reviewId], references: [id], onDelete: SetNull)
+  kpiPlanId   String?
+  kpiPlan     KpiPlan?       @relation(fields: [kpiPlanId], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   User?          @relation("FollowUpCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime       @default(now())
+  completedAt DateTime?
+  notes       FollowUpNote[]
+}
+
+model FollowUpNote {
+  id         String   @id @default(cuid())
+  followUpId String
+  followUp   FollowUp @relation(fields: [followUpId], references: [id], onDelete: Cascade)
+  authorId   String?
+  author     User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  content    String
+  createdAt  DateTime @default(now())
+}
+
+// ───────────── Giao việc ─────────────
+
+model Task {
+  id            String        @id @default(cuid())
+  title         String
+  description   String?
+  assigneeId    String // Người thực hiện
+  assignee      Employee      @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: Cascade)
+  collaborators Employee[]    @relation("TaskCollaborators") // Người phối hợp
+  createdById   String? // Người giao
+  createdBy     User?         @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  dueDate       DateTime?     @db.Date
+  priority      TaskPriority  @default(NORMAL)
+  status        TaskStatus    @default(TODO)
+  resultNote    String? // Báo cáo kết quả của người thực hiện
+  submittedAt   DateTime? // Lúc báo cáo hoàn thành
+  completedAt   DateTime? // Lúc người giao xác nhận
+  createdAt     DateTime      @default(now())
+  comments      TaskComment[]
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  content   String
+  createdAt DateTime @default(now())
+}
+
+// ───────────── Onboarding / Offboarding ─────────────
+
+model ChecklistTemplate {
+  id        String                  @id @default(cuid())
+  name      String
+  kind      ChecklistKind
+  appliesTo EmployeeType[]
+  tasks     ChecklistTemplateTask[]
+}
+
+model ChecklistTemplateTask {
+  id           String            @id @default(cuid())
+  templateId   String
+  template     ChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  title        String
+  assigneeRole AssigneeRole
+  offsetDays   Int               @default(0) // Số ngày so với ngày vào làm / ngày nghỉ (âm = trước)
+  sortOrder    Int               @default(0)
+}
+
+model Checklist {
+  id          String          @id @default(cuid())
+  employeeId  String
+  employee    Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  kind        ChecklistKind
+  name        String
+  baseDate    DateTime        @db.Date
+  createdAt   DateTime        @default(now())
+  completedAt DateTime?
+  tasks       ChecklistTask[]
+}
+
+model ChecklistTask {
+  id           String       @id @default(cuid())
+  checklistId  String
+  checklist    Checklist    @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  title        String
+  assigneeRole AssigneeRole
+  dueDate      DateTime     @db.Date
+  doneAt       DateTime?
+  doneById     String?
+  doneBy       User?        @relation(fields: [doneById], references: [id], onDelete: SetNull)
+  note         String?
+  sortOrder    Int          @default(0)
+}

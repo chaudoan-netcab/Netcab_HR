@@ -111,7 +111,7 @@ export function DashboardGrid({ view, cards, initial }: { view: DashView; cards:
     <div className="flex flex-col gap-3">
       {(changed || saveFailed) && (
         <div className="hidden items-center justify-end gap-3 lg:flex">
-          {saveFailed && <span className="text-xs text-red-600">Chưa lưu được bố cục, thử lại sau</span>}
+          {saveFailed && <span className="text-xs text-status-danger-text">Chưa lưu được bố cục, thử lại sau</span>}
           {changed && (
             <button
               type="button"
@@ -119,7 +119,7 @@ export function DashboardGrid({ view, cards, initial }: { view: DashView; cards:
                 update(DEFAULT_LAYOUT[view]);
                 save(null);
               }}
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium text-slate-500 transition hover:bg-white hover:text-brand-700"
+              className="btn btn-ghost btn-sm text-muted-foreground hover:text-foreground"
             >
               <RotateCcw size={13} aria-hidden /> Khôi phục bố cục mặc định
             </button>
@@ -139,7 +139,7 @@ export function DashboardGrid({ view, cards, initial }: { view: DashView; cards:
               key={item.id}
               style={{ "--w": item.w, "--h": item.h } as CSSProperties}
               className={`group/cell relative grid min-w-0 transition-opacity lg:[grid-column:span_var(--w)/span_var(--w)] lg:[grid-row:span_var(--h)/span_var(--h)] ${dragId === item.id ? "opacity-40" : ""} ${
-                active ? "rounded-2xl ring-2 ring-brand-500/40" : ""
+                active ? "rounded-[4px] ring-2 ring-primary/40" : ""
               }`}
               draggable={armed === item.id}
               onDragStart={(e) => {
@@ -167,7 +167,7 @@ export function DashboardGrid({ view, cards, initial }: { view: DashView; cards:
                 type="button"
                 aria-label={`Đổi chỗ thẻ ${card.title}: kéo thả, hoặc dùng phím mũi tên`}
                 title="Kéo để đổi chỗ"
-                className="absolute right-6 top-0 z-10 hidden h-6 w-8 -translate-y-1/2 cursor-grab items-center justify-center rounded-full bg-white text-slate-400 shadow-sm ring-1 ring-slate-200 transition hover:text-slate-700 active:cursor-grabbing lg:flex"
+                className="absolute right-6 top-0 z-10 hidden h-6 w-8 -translate-y-1/2 cursor-grab items-center justify-center rounded-[4px] bg-card text-muted-foreground ring-1 ring-border transition-colors hover:text-foreground active:cursor-grabbing lg:flex"
                 onPointerDown={() => setArmed(item.id)}
                 onPointerUp={() => !dragId && setArmed(null)}
                 onKeyDown={(e) => onMoveKey(e, item.id)}
@@ -180,8 +180,8 @@ export function DashboardGrid({ view, cards, initial }: { view: DashView; cards:
                 type="button"
                 aria-label={`Đổi kích thước thẻ ${card.title}: kéo góc, hoặc mũi tên trái/phải đổi rộng, lên/xuống đổi cao`}
                 title="Kéo để đổi kích thước"
-                className={`absolute bottom-1.5 right-1.5 z-10 hidden size-6 cursor-nwse-resize touch-none items-center justify-center rounded-md text-slate-300 transition hover:bg-slate-100 hover:text-slate-600 focus-visible:opacity-100 lg:flex ${
-                  resizing === item.id ? "bg-slate-100 text-brand-600 opacity-100" : "opacity-0 group-hover/cell:opacity-100"
+                className={`absolute bottom-1.5 right-1.5 z-10 hidden size-6 cursor-nwse-resize touch-none items-center justify-center rounded-[4px] text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground focus-visible:opacity-100 lg:flex ${
+                  resizing === item.id ? "bg-muted text-primary-text opacity-100" : "opacity-0 group-hover/cell:opacity-100"
                 }`}
                 onPointerDown={(e) => onResizeDown(e, item)}
                 onPointerMove={(e) => onResizeMove(e, item.id)}
@@ -196,7 +196,7 @@ export function DashboardGrid({ view, cards, initial }: { view: DashView; cards:
 
               {/* Nhãn kích thước khi đang kéo */}
               {resizing === item.id && (
-                <span className="pointer-events-none absolute bottom-2 right-9 z-10 rounded-md bg-slate-800 px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-white">
+                <span className="pointer-events-none absolute bottom-2 right-9 z-10 rounded-[4px] bg-foreground px-1.5 py-0.5 text-[11px] font-medium tabular-nums text-background">
                   {item.w}/{COLS} cột · cao {item.h}
                 </span>
               )}

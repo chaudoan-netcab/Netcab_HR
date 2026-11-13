@@ -44,19 +44,19 @@ export default async function KpiSetsPage({ searchParams }: { searchParams: Prom
                   key={u.id}
                   title={u.name}
                   pad={false}
-                  actions={<span className="text-xs text-slate-500">Trưởng phòng: {u.headName ?? "chưa có"}{own && " (bạn)"}</span>}
+                  actions={<span className="text-xs text-muted-foreground">Trưởng phòng: {u.headName ?? "chưa có"}{own && " (bạn)"}</span>}
                 >
                   {list.length === 0 ? (
                     <EmptyState title="Phòng chưa có bộ KPI" hint={own ? "Tạo bộ KPI mới ở khung bên cạnh." : undefined} />
                   ) : (
-                    <ul className="divide-y divide-slate-100">
+                    <ul className="divide-y divide-border">
                       {list.map(({ template }) => {
                         const w = weights.get(template.id) ?? 0;
                         return (
-                          <li key={template.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3">
+                          <li key={template.id} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 max-md:px-3">
                             <div className="min-w-0">
                               <Link href={`/kpi/sets/${template.id}`} className="font-medium">{template.name}</Link>
-                              <div className="text-xs text-slate-500">
+                              <div className="text-xs text-muted-foreground tabular-nums">
                                 {template._count.items} chỉ số · tổng tỉ trọng {pct(w, 0)} · đã giao {template._count.plans} phiếu
                               </div>
                             </div>

@@ -2,7 +2,7 @@
 // Bảng theo dõi theo người: sắp xếp theo cột số, chọn nhiều dòng, đánh dấu "Cần chú ý", nút Nhắc
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Bell, BellRing, CheckCircle2, Info } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Bell, BellRing, CheckCircle2, Info } from "lucide-react";
 import { Badge, EmptyState } from "@/components/ui";
 import { Tip } from "@/components/tip";
 import { TRACKING_THRESHOLDS as T } from "@/config/tracking";
@@ -11,7 +11,9 @@ import { ReminderDialog } from "./reminder-dialog";
 
 type SortKey = "name" | "active" | "overdue" | "waiting" | "returned" | "kpi" | "last";
 /** Ô vượt ngưỡng "Cần chú ý" (ngưỡng trong src/config/tracking.ts) */
-const HOT = "bg-red-100/70 font-semibold text-red-700";
+// Chữ màu trạng thái, không tô nền ô: quá hạn = đỏ (trễ), KPI thấp / bị trả lại nhiều = vàng (rủi ro)
+const HOT = "font-medium text-status-danger-text";
+const RISK = "font-medium text-status-warning-text";
 /** Định nghĩa "Cần chú ý" — hiện trong tooltip ⓘ */
 const ATTENTION_DEF = `Cần chú ý khi thỏa ít nhất 1 điều kiện trong quý: KPI tạm tính dưới ${Math.round(T.kpiBelow * 100)}%, từ ${T.overdueAtLeast} việc quá hạn, hoặc từ ${T.returnedAtLeast} lần bị trả lại. % tạm tính chỉ tính trên các chỉ số đã cập nhật.`;
 
@@ -98,7 +100,7 @@ export function TrackingBoard({
         <button
           type="button"
           onClick={() => setSort((s) => ({ key: k, dir: s.key === k ? (s.dir === 1 ? -1 : 1) : k === "name" ? 1 : -1 }))}
-          className={`inline-flex items-center gap-1 whitespace-nowrap text-left font-semibold leading-tight hover:text-slate-800 ${active ? "text-slate-800" : ""}`}
+          className={`inline-flex items-center gap-1 whitespace-nowrap text-left font-medium leading-tight hover:text-foreground ${active ? "text-foreground" : ""}`}
         >
           {children}
           <Icon size={12} className={active ? "" : "opacity-40"} aria-hidden />
@@ -107,22 +109,41 @@ export function TrackingBoard({
     );
   };
 
+  /** Nhãn "Cần chú ý": chấm + chữ vàng (rủi ro), rê chuột xem lý do */
+  const attention = (r: TrackRow) => (
+    <Tip content={<ul className="list-disc pl-4">{r.reasons.map((x) => <li key={x}>{x}</li>)}</ul>}>
+      <span className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-status-warning-text">
+        <span className="size-2 rounded-full bg-status-warning" aria-hidden /> Cần chú ý
+      </span>
+    </Tip>
+  );
+  const kpiCls = (r: TrackRow) => (r.kpi.score !== null && r.kpi.score < T.kpiBelow ? RISK : "");
+  const kpiSub = (r: TrackRow) => (r.kpi.total && r.kpi.updated < r.kpi.total ? "text-status-warning-text" : "text-muted-foreground");
+  const lastReminder = (r: TrackRow) =>
+    r.lastReminder ? (
+      <Tip content={REMINDER_LABEL[r.lastReminder.type]}>
+        <span className="tabular-nums text-foreground">{fmtAt(r.lastReminder.at)}</span>
+      </Tip>
+    ) : (
+      <span className="text-muted-foreground">Chưa nhắc</span>
+    );
+
   return (
     <>
       {toast && (
-        <div role="status" className="mb-3 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-700">
-          <CheckCircle2 size={16} /> {toast}
-          <button type="button" onClick={() => setToast(null)} className="ml-auto text-xs text-emerald-700 underline">
+        <div role="status" className="card mb-3 flex items-center gap-2 px-4 py-2.5 text-[13px] text-status-success-text">
+          <CheckCircle2 size={16} className="shrink-0" aria-hidden /> {toast}
+          <button type="button" onClick={() => setToast(null)} className="ml-auto text-xs text-muted-foreground underline hover:text-foreground">
             Đóng
           </button>
         </div>
       )}
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="flex items-center gap-1.5 text-sm text-slate-600">
-          {rows.length} người · <b className="text-red-700">{rows.filter((r) => r.reasons.length).length}</b> cần chú ý
+        <span className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+          <span className="tabular-nums">{rows.length}</span> người · <b className="font-medium tabular-nums text-status-warning-text">{rows.filter((r) => r.reasons.length).length}</b> cần chú ý
           <Tip content={ATTENTION_DEF}>
-            <Info size={15} className="text-slate-400" aria-label="Định nghĩa Cần chú ý" />
+            <Info size={15} className="text-muted-foreground" aria-label="Định nghĩa Cần chú ý" />
           </Tip>
         </span>
         {!readOnly && (
@@ -132,7 +153,7 @@ export function TrackingBoard({
         )}
       </div>
 
-      <div className="card overflow-x-auto">
+      <div className="card hidden overflow-x-auto md:block">
         <table className="table [&_td]:px-2.5 [&_th]:px-2.5">
           <thead>
             <tr>
@@ -143,7 +164,7 @@ export function TrackingBoard({
                     aria-label="Chọn tất cả"
                     checked={allChecked}
                     onChange={() => setSelected(allChecked ? new Set() : new Set(rows.map((r) => r.id)))}
-                    className="h-4 w-4 cursor-pointer accent-brand-600"
+                    className="h-4 w-4 cursor-pointer accent-primary"
                   />
                 </th>
               )}
@@ -151,82 +172,60 @@ export function TrackingBoard({
               <Th k="active" className="text-right">Đang làm</Th>
               <Th k="overdue" className="text-right">Quá hạn</Th>
               <Th k="waiting" className="text-right">Chờ xác nhận</Th>
-              <Th k="returned" className="text-right">Trả lại</Th>
+              <Th k="returned" className="hidden text-right xl:table-cell">Trả lại</Th>
               <Th k="kpi" className="text-right">KPI tạm tính</Th>
-              <th className="whitespace-nowrap">Phiếu KPI</th>
-              <Th k="last">Nhắc gần nhất</Th>
-              {!readOnly && <th className="sticky right-0 w-12 bg-slate-50"><span className="sr-only">Nhắc</span></th>}
+              <th className="hidden whitespace-nowrap xl:table-cell">Phiếu KPI</th>
+              <Th k="last" className="hidden xl:table-cell">Nhắc gần nhất</Th>
+              {!readOnly && <th className="sticky right-0 w-12 bg-card"><span className="sr-only">Nhắc</span></th>}
             </tr>
           </thead>
           <tbody>
             {sorted.map((r) => {
               const warn = r.reasons.length > 0;
               return (
-                <tr key={r.id} className={warn ? "bg-[#fff7f7]" : "bg-white"}>
+                <tr key={r.id}>
                   {!readOnly && (
-                    <td className={warn ? "border-l-2 border-l-red-500" : ""}>
-                      <input type="checkbox" aria-label={`Chọn ${r.name}`} checked={selected.has(r.id)} onChange={() => toggle(r.id)} className="h-4 w-4 cursor-pointer accent-brand-600" />
+                    <td>
+                      <input type="checkbox" aria-label={`Chọn ${r.name}`} checked={selected.has(r.id)} onChange={() => toggle(r.id)} className="h-4 w-4 cursor-pointer accent-primary" />
                     </td>
                   )}
-                  <td className={`min-w-40 ${readOnly && warn ? "border-l-2 border-l-red-500" : ""}`}>
-                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                  <td className="min-w-40">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                       <Link href={`/follow-ups/people/${r.id}${query}`} className="font-medium">
                         {r.name}
                       </Link>
-                      {warn && (
-                        <Tip content={<ul className="list-disc pl-4">{r.reasons.map((x) => <li key={x}>{x}</li>)}</ul>}>
-                          <span className="inline-flex items-center gap-0.5 whitespace-nowrap rounded bg-red-100 px-1.5 py-0.5 text-[11px] font-semibold text-red-700">
-                            <AlertTriangle size={11} aria-hidden /> Cần chú ý
-                          </span>
-                        </Tip>
-                      )}
+                      {warn && attention(r)}
                     </div>
-                    <div className="text-xs text-slate-500">{[r.position, admin ? r.department : null].filter(Boolean).join(" · ")}</div>
+                    <div className="text-xs text-muted-foreground">{[r.position, admin ? r.department : null].filter(Boolean).join(" · ")}</div>
                   </td>
-                  <td className={`text-right tabular-nums ${r.active ? "" : "text-slate-400"}`}>{r.active}</td>
-                  <td className={`text-right tabular-nums ${r.overdue >= T.overdueAtLeast ? HOT : r.overdue ? "" : "text-slate-400"}`}>{r.overdue}</td>
-                  <td className={`text-right tabular-nums ${r.waiting ? "" : "text-slate-400"}`}>{r.waiting}</td>
-                  <td className={`text-right tabular-nums ${r.returned >= T.returnedAtLeast ? HOT : r.returned ? "" : "text-slate-400"}`}>{r.returned}</td>
-                  <td className={`whitespace-nowrap text-right ${r.kpi.score !== null && r.kpi.score < T.kpiBelow ? HOT : ""}`}>
-                    <div className={`font-semibold tabular-nums ${r.kpi.score === null ? "text-slate-400" : r.kpi.score < T.kpiBelow ? "" : "text-slate-900"}`}>{r.kpi.score === null ? "—" : fmtPct(r.kpi.score)}</div>
-                    <div className={`text-[11px] font-normal tabular-nums ${r.kpi.total && r.kpi.updated < r.kpi.total ? "text-amber-700" : "text-slate-500"}`}>
-                      {r.kpi.total ? `${r.kpi.updated}/${r.kpi.total} chỉ số` : "Chưa có phiếu"}
-                    </div>
+                  <td className={`text-right tabular-nums ${r.active ? "" : "text-muted-foreground"}`}>{r.active}</td>
+                  <td className={`text-right tabular-nums ${r.overdue >= T.overdueAtLeast ? HOT : r.overdue ? "" : "text-muted-foreground"}`}>{r.overdue}</td>
+                  <td className={`text-right tabular-nums ${r.waiting ? "" : "text-muted-foreground"}`}>{r.waiting}</td>
+                  <td className={`hidden text-right tabular-nums xl:table-cell ${r.returned >= T.returnedAtLeast ? RISK : r.returned ? "" : "text-muted-foreground"}`}>{r.returned}</td>
+                  <td className={`whitespace-nowrap text-right ${kpiCls(r)}`}>
+                    <div className={`font-medium tabular-nums ${r.kpi.score === null ? "text-muted-foreground" : kpiCls(r) ? "" : "text-foreground"}`}>{r.kpi.score === null ? "—" : fmtPct(r.kpi.score)}</div>
+                    <div className={`text-[11px] font-normal tabular-nums ${kpiSub(r)}`}>{r.kpi.total ? `${r.kpi.updated}/${r.kpi.total} chỉ số` : "Chưa có phiếu"}</div>
                   </td>
-                  <td>
+                  <td className="hidden xl:table-cell">
                     {r.plan ? (
                       <>
                         <Link href={`/kpi/${r.plan.id}`} className="no-underline hover:no-underline">
                           <Badge tone={r.plan.tone}>{r.plan.statusLabel}</Badge>
                         </Link>
-                        <div className="mt-0.5 text-[11px] text-slate-500">{r.plan.period}</div>
+                        <div className="mt-0.5 text-[11px] text-muted-foreground">{r.plan.period}</div>
                       </>
                     ) : (
-                      <span className="text-xs text-slate-400">Chưa có phiếu</span>
+                      <span className="text-xs text-muted-foreground">Chưa có phiếu</span>
                     )}
                   </td>
-                  <td className="whitespace-nowrap text-xs">
-                    {r.lastReminder ? (
-                      <Tip content={REMINDER_LABEL[r.lastReminder.type]}>
-                        <span className="tabular-nums text-slate-700">{fmtAt(r.lastReminder.at)}</span>
-                      </Tip>
-                    ) : (
-                      <span className="text-slate-400">Chưa nhắc</span>
-                    )}
-                  </td>
-                  {/* Cột nhắc cố định bên phải: luôn nhìn thấy kể cả khi bảng phải cuộn ngang trên màn hình nhỏ */}
+                  <td className="hidden whitespace-nowrap text-xs xl:table-cell">{lastReminder(r)}</td>
+                  {/* Cột nhắc cố định bên phải: luôn nhìn thấy kể cả khi bảng phải cuộn ngang */}
                   {!readOnly && (
-                  <td className="sticky right-0 bg-inherit [tr:hover_&]:bg-slate-50">
-                    <button
-                      type="button"
-                      onClick={() => setDialogRows([r])}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-brand-300 hover:text-brand-700"
-                      aria-label={`Nhắc ${r.name}`}
-                      title={`Nhắc ${r.name}`}
-                    >
-                      <Bell size={15} aria-hidden />
-                    </button>
-                  </td>
+                    <td className="sticky right-0 bg-card">
+                      <button type="button" onClick={() => setDialogRows([r])} className="btn btn-ghost h-8 w-8 px-0 text-muted-foreground hover:text-foreground" aria-label={`Nhắc ${r.name}`} title={`Nhắc ${r.name}`}>
+                        <Bell size={15} aria-hidden />
+                      </button>
+                    </td>
                   )}
                 </tr>
               );
@@ -234,6 +233,60 @@ export function TrackingBoard({
           </tbody>
         </table>
       </div>
+
+      {/* Điện thoại: danh sách thẻ, cùng dữ liệu với bảng */}
+      <ul className="space-y-3 md:hidden">
+        {sorted.map((r) => {
+          const warn = r.reasons.length > 0;
+          return (
+            <li key={r.id}>
+              <article className="rounded-[6px] border border-border bg-card p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="min-w-0 truncate text-xs text-muted-foreground">{[r.position, admin ? r.department : null].filter(Boolean).join(" · ") || "—"}</span>
+                  {warn && attention(r)}
+                </div>
+                <Link href={`/follow-ups/people/${r.id}${query}`} className="mt-0.5 block text-[14px] font-medium text-foreground">
+                  {r.name}
+                </Link>
+                <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-[13px]">
+                  <div><dt className="inline text-muted-foreground">Đang làm:</dt> <dd className="inline tabular-nums">{r.active}</dd></div>
+                  <div><dt className="inline text-muted-foreground">Quá hạn:</dt> <dd className={`inline tabular-nums ${r.overdue >= T.overdueAtLeast ? HOT : ""}`}>{r.overdue}</dd></div>
+                  <div><dt className="inline text-muted-foreground">Chờ xác nhận:</dt> <dd className="inline tabular-nums">{r.waiting}</dd></div>
+                  <div><dt className="inline text-muted-foreground">Trả lại:</dt> <dd className={`inline tabular-nums ${r.returned >= T.returnedAtLeast ? RISK : ""}`}>{r.returned}</dd></div>
+                  <div>
+                    <dt className="inline text-muted-foreground">KPI tạm tính:</dt>{" "}
+                    <dd className={`inline tabular-nums ${kpiCls(r)}`}>{r.kpi.score === null ? "—" : fmtPct(r.kpi.score)}</dd>{" "}
+                    <dd className={`inline text-xs tabular-nums ${kpiSub(r)}`}>({r.kpi.total ? `${r.kpi.updated}/${r.kpi.total} chỉ số` : "Chưa có phiếu"})</dd>
+                  </div>
+                  <div>
+                    <dt className="inline text-muted-foreground">Phiếu KPI:</dt>{" "}
+                    <dd className="inline">
+                      {r.plan ? (
+                        <Link href={`/kpi/${r.plan.id}`} className="no-underline hover:no-underline">
+                          <Badge tone={r.plan.tone}>{r.plan.statusLabel}</Badge> <span className="text-xs text-muted-foreground">{r.plan.period}</span>
+                        </Link>
+                      ) : (
+                        <span className="text-muted-foreground">Chưa có phiếu</span>
+                      )}
+                    </dd>
+                  </div>
+                  <div><dt className="inline text-muted-foreground">Nhắc gần nhất:</dt> <dd className="inline">{lastReminder(r)}</dd></div>
+                </dl>
+                {!readOnly && (
+                  <div className="mt-3 flex gap-2">
+                    <label className="btn btn-sm">
+                      <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} className="h-4 w-4 cursor-pointer accent-primary" /> Chọn
+                    </label>
+                    <button type="button" onClick={() => setDialogRows([r])} className="btn btn-sm">
+                      <Bell size={14} aria-hidden /> Nhắc
+                    </button>
+                  </div>
+                )}
+              </article>
+            </li>
+          );
+        })}
+      </ul>
 
       {dialog && (
         <ReminderDialog

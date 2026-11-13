@@ -11,6 +11,7 @@ import { emptyYear, loadYearKpi } from "@/lib/server/kpi-year";
 import { Badge, Card, EmptyState, Flash, PageHeader, Tabs } from "@/components/ui";
 import { capsOf, requireEmployeeUser } from "@/lib/server/access";
 import { YearKpiStrip } from "./_components/year-kpi";
+import { FLAT_ON_MOBILE, GradeText, MobileCard, MobileField, MobileList, TABLE_MD } from "./_components/mobile-card";
 
 export default async function MyKpiPage({ searchParams }: { searchParams: Promise<{ year?: string; ok?: string; err?: string }> }) {
   const user = await requireEmployeeUser();
@@ -44,20 +45,22 @@ export default async function MyKpiPage({ searchParams }: { searchParams: Promis
           {updating.map(({ p, range, reminder }) => {
             const left = diffDays(now, range.end);
             const filled = p.items.filter((i) => i.actual !== null).length;
+            // Hết kỳ chưa gửi = trễ (đỏ); có lời nhắc = cần chú ý (vàng); còn lại chỉ là thông tin
+            const tone = left < 0 ? "text-status-danger-text" : reminder ? "text-status-warning-text" : "text-muted-foreground";
             return (
               <Link
                 key={p.id}
                 href={`/kpi/${p.id}`}
-                className={`mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border px-4 py-3 text-sm hover:no-underline ${reminder || left < 0 ? "border-amber-200 bg-amber-50 text-amber-900" : "border-brand-200 bg-brand-50 text-brand-900"}`}
+                className="card mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm text-foreground no-underline transition-colors hover:bg-muted/60 hover:no-underline max-md:px-3"
               >
-                <BellRing size={16} className="shrink-0" aria-hidden />
-                <span className="min-w-0 flex-1">
-                  <b>{left < 0 ? "Đã hết kỳ, cần gửi kết quả" : "Cập nhật tiến độ"} KPI {periodLabel(p.periodType, p.period, p.year)}</b>
+                <BellRing size={16} className={`shrink-0 ${tone}`} aria-hidden />
+                <span className="min-w-0 flex-1 max-sm:basis-[calc(100%-2rem)]">
+                  <b className="font-medium">{left < 0 ? "Đã hết kỳ, cần gửi kết quả" : "Cập nhật tiến độ"} KPI {periodLabel(p.periodType, p.period, p.year)}</b>
                   {" · "}
-                  {filled}/{p.items.length} chỉ số có số liệu
-                  {reminder && <> · <b>{reminder.by}</b> đã nhắc cập nhật</>}
+                  <span className="tabular-nums">{filled}/{p.items.length}</span> chỉ số có số liệu
+                  {reminder && <span className="text-status-warning-text"> · <b className="font-medium">{reminder.by}</b> đã nhắc cập nhật</span>}
                 </span>
-                <span className="text-xs">
+                <span className={`text-xs font-medium max-sm:flex-1 max-sm:pl-8 ${tone}`}>
                   {left < 0 ? `Hết kỳ ${fmtDate(range.end)}` : `Còn ${left} ngày (đến ${fmtDate(range.end)})`}
                 </span>
                 <span className="btn btn-sm">Cập nhật</span>
@@ -82,8 +85,8 @@ export default async function MyKpiPage({ searchParams }: { searchParams: Promis
             <YearKpiStrip y={yearKpi} year={year} currentQuarter={currentQuarter} />
           </Card>
 
-          <Card title="Các phiếu KPI" pad={false}>
-            <div className="overflow-x-auto">
+          <Card title="Các phiếu KPI" pad={false} className={FLAT_ON_MOBILE}>
+            <div className={`overflow-x-auto ${TABLE_MD}`}>
               <table className="table">
                 <thead>
                   <tr>
@@ -103,11 +106,11 @@ export default async function MyKpiPage({ searchParams }: { searchParams: Promis
                         <td className="whitespace-nowrap font-medium">
                           <Link href={`/kpi/${p.id}`}>{periodLabel(p.periodType, p.period, p.year)}</Link>
                         </td>
-                        <td className="text-xs text-slate-600">{p.title}</td>
-                        <td className="text-right tabular-nums">
-                          {p.status === "DRAFT" ? <span className="text-xs text-slate-500">{filled}/{p.items.length} chỉ số</span> : pct(p.score)}
+                        <td className="text-muted-foreground">{p.title}</td>
+                        <td className="whitespace-nowrap text-right tabular-nums">
+                          {p.status === "DRAFT" ? <span className="text-xs text-muted-foreground">{filled}/{p.items.length} chỉ số</span> : pct(p.score)}
                         </td>
-                        <td>{p.grade && p.status !== "DRAFT" && <Badge tone={kpiGradeTone(p.grade)}>{p.grade}</Badge>}</td>
+                        <td>{p.grade && p.status !== "DRAFT" && <GradeText tone={kpiGradeTone(p.grade)}>{p.grade}</GradeText>}</td>
                         <td>
                           <Badge tone={st.tone}>{p.status === "DRAFT" && !locked.has(p.id) ? "Đang cập nhật" : st.label}</Badge>
                         </td>
@@ -117,6 +120,30 @@ export default async function MyKpiPage({ searchParams }: { searchParams: Promis
                 </tbody>
               </table>
             </div>
+            <MobileList>
+              {plans.map((p) => {
+                const st = kpiStatusView(p.status, locked.has(p.id));
+                const filled = p.items.filter((i) => i.actual !== null).length;
+                return (
+                  <MobileCard
+                    key={p.id}
+                    meta={p.title}
+                    status={<Badge tone={st.tone}>{p.status === "DRAFT" && !locked.has(p.id) ? "Đang cập nhật" : st.label}</Badge>}
+                    title={periodLabel(p.periodType, p.period, p.year)}
+                    href={`/kpi/${p.id}`}
+                  >
+                    <MobileField label="Kết quả">
+                      <span className="tabular-nums">{p.status === "DRAFT" ? `${filled}/${p.items.length} chỉ số` : pct(p.score)}</span>
+                    </MobileField>
+                    {p.grade && p.status !== "DRAFT" && (
+                      <MobileField label="Xếp loại">
+                        <GradeText tone={kpiGradeTone(p.grade)}>{p.grade}</GradeText>
+                      </MobileField>
+                    )}
+                  </MobileCard>
+                );
+              })}
+            </MobileList>
           </Card>
         </>
       )}

@@ -95,14 +95,14 @@ export default async function TaskPage({ params, searchParams }: { params: Promi
       <div className="grid gap-5 min-[900px]:grid-cols-3">
         <div className="flex min-w-0 flex-col gap-5 min-[900px]:col-span-2">
           {returned && (
-            <div role="alert" className="flex gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-              <CornerUpLeft size={18} className="mt-0.5 shrink-0 text-red-600" aria-hidden />
-              <div className="min-w-0 text-sm">
-                <div className="font-semibold text-red-800">
+            <div role="alert" className="card flex gap-3 px-5 py-4 max-md:px-3">
+              <CornerUpLeft size={16} className="mt-0.5 shrink-0 text-status-danger-text" aria-hidden />
+              <div className="min-w-0 text-[13px]">
+                <div className="font-medium text-status-danger-text">
                   {isAssignee ? "Nhiệm vụ bị trả lại — cần làm tiếp và báo cáo lại" : "Nhiệm vụ đã bị trả lại để làm tiếp"}
                 </div>
-                <p className="mt-1 whitespace-pre-line text-red-900">{returned.text ?? "Không ghi lý do"}</p>
-                <div className="mt-1 text-xs text-red-700">
+                <p className="mt-1 whitespace-pre-line text-foreground">{returned.text ?? "Không ghi lý do"}</p>
+                <div className="mt-1 text-xs text-muted-foreground">
                   {returned.by} · {fmtWhen(returned.at)}
                 </div>
               </div>

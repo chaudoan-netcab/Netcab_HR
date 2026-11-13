@@ -23,7 +23,7 @@ export function Tip({ content, children, className = "" }: { content: ReactNode;
       onFocus={show}
       onBlur={hide}
       onKeyDown={(e) => e.key === "Escape" && hide()}
-      className={`cursor-help rounded outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${className}`}
+      className={`cursor-help rounded-[4px] outline-none focus-visible:ring-2 focus-visible:ring-ring ${className}`}
     >
       {children}
       {pos && (
@@ -31,7 +31,7 @@ export function Tip({ content, children, className = "" }: { content: ReactNode;
           id={id}
           role="tooltip"
           style={{ left: pos.x, top: pos.y, transform: `translate(-50%, ${pos.below ? "0" : "-100%"})` }}
-          className="pointer-events-none fixed z-50 block w-max max-w-64 whitespace-normal rounded-lg bg-slate-900 px-3 py-2 text-left text-xs font-normal leading-relaxed text-white shadow-lg"
+          className="pointer-events-none fixed z-50 block w-max max-w-64 whitespace-normal rounded-[4px] bg-foreground px-3 py-2 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-background shadow-md"
         >
           {content}
         </span>

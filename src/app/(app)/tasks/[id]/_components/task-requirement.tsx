@@ -1,15 +1,16 @@
 // "Yêu cầu và kết quả mong muốn" — mô tả nhiệm vụ. Trống thì chỉ 1 dòng chữ mờ có nhãn, không dùng thẻ lớn.
+import { Card } from "@/components/ui";
+
 export function TaskRequirement({ description }: { description: string | null }) {
   if (!description?.trim())
     return (
-      <p className="rounded-lg border border-dashed border-slate-200 px-4 py-2.5 text-sm text-slate-400">
-        <span className="font-medium text-slate-500">Yêu cầu và kết quả mong muốn:</span> chưa có mô tả
+      <p className="card px-5 py-3 text-[13px] text-muted-foreground max-md:px-3">
+        <span className="font-medium text-foreground">Yêu cầu và kết quả mong muốn:</span> chưa có mô tả
       </p>
     );
   return (
-    <section className="card card-pad">
-      <h2 className="mb-2">Yêu cầu và kết quả mong muốn</h2>
-      <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700">{description}</p>
-    </section>
+    <Card title="Yêu cầu và kết quả mong muốn">
+      <p className="whitespace-pre-line text-[13px] leading-relaxed text-foreground">{description}</p>
+    </Card>
   );
 }

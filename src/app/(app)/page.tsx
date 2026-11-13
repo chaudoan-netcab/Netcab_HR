@@ -7,8 +7,9 @@ import { getCurrentUser, type CurrentUser } from "@/lib/server/auth";
 import { getSummary, loadUnits, lockedPlanIds, parseYq } from "@/lib/server/department-flow";
 import { missingAttendanceMonths, monthLabel as attMonthLabel } from "@/lib/server/attendance";
 import { ViewToggle } from "@/components/flow-ui";
-import { today } from "@/lib/dates";
-import { inQuarter, kpiGrade, periodLabel, provisionalKpi } from "@/lib/kpi";
+import { fmtDate, today } from "@/lib/dates";
+import { demo } from "@/lib/server/demo-store";
+import { inQuarter, kpiGrade, periodLabel, periodRange, provisionalKpi } from "@/lib/kpi";
 import { employeeTypeLabel, taskStatusLabel } from "@/lib/labels";
 import { GRADE_INFO } from "@/lib/review-templates";
 import { OPEN_TASK } from "@/lib/server/tasks";
@@ -18,6 +19,7 @@ import { ColumnChart, Donut, Gauge, HBarChart, LineChart, ProgressRing, SoftBarC
 import { AutoRefresh } from "@/components/live-refresh";
 import { AlertBanner, CircleLink, DashCard, Greeting, Hl, OngoingTasks, PillLink, StatCard, type OngoingTask } from "./_components/dashboard-ui";
 import { DashboardGrid } from "./_components/dashboard-grid";
+import { KpiPeriodPicker } from "./_components/period-picker";
 import { resolveLayout, type DashView } from "./_components/dashboard-layout";
 
 /** Bố cục đã lưu của người dùng cho 1 view (chưa kiểm tra — resolveLayout sẽ làm sạch) */
@@ -32,16 +34,14 @@ const DAY = 86_400_000;
 /** Số nhiệm vụ nạp cho thẻ "Nhiệm vụ đang chạy" (thẻ cao bao nhiêu hiện bấy nhiêu, còn lại cuộn) */
 const ONGOING = 10;
 
-/** Màu theo vai trò của dữ liệu (token trong globals.css) */
+/** Sắc độ của màu chuỗi chính (pha --chart-1 với nền khối, tự đúng ở sáng/tối) */
+const shade = (pct: number) => `color-mix(in srgb, var(--chart-1) ${pct}%, var(--card))`;
+/** Màu biểu đồ theo token NETCAB: chuỗi chính --chart-1, so sánh --chart-5; các phần của một tổng là sắc độ của --chart-1 */
 const C = {
-  s1: "var(--viz-1)",
-  s2: "var(--viz-2)",
-  s3: "var(--viz-3)",
-  s4: "var(--viz-4)",
-  neutral: "var(--viz-neutral)",
-  warning: "var(--st-warning)",
-  // thang thứ bậc: nhạt = bước đầu, đậm = bước cuối / hạng cao
-  seq: ["var(--seq-250)", "var(--seq-300)", "var(--seq-400)", "var(--seq-500)", "var(--seq-600)"],
+  main: "var(--chart-1)",
+  compare: "var(--chart-5)",
+  // thang thứ bậc: nhạt = bước đầu, đậm = bước cuối
+  steps: [shade(40), shade(62), shade(82), "var(--chart-1)"],
 };
 
 /** Kỳ nào mới hơn: quy về tháng kết thúc kỳ để so được tháng với quý */
@@ -71,7 +71,7 @@ type OngoingRow = Prisma.TaskGetPayload<{ select: typeof ONGOING_SELECT }>;
 function toOngoing(rows: OngoingRow[], now: Date): OngoingTask[] {
   return rows.map((t) => {
     const due = dueChip(t, now);
-    const label = !t.dueDate ? "Không hạn" : due.late ? cap(due.note!) : due.note === "hôm nay" ? "Hạn hôm nay" : `Hạn ${due.date.slice(0, 5)}`;
+    const label = !t.dueDate ? "Không hạn" : due.late ? cap(due.note!) : due.note === "hôm nay" ? "Hôm nay" : `Hạn ${due.date.slice(0, 5)}`;
     return { id: t.id, title: t.title, assignee: t.assignee.fullName, due: { label, tone: due.tone } };
   });
 }
@@ -83,7 +83,7 @@ const KPI_STEP_SHORT: Record<string, string> = { DRAFT: "Đang cập nhật", SU
  * Trang Tổng quan — lời chào, banner việc cần chú ý, 4 chỉ số, nhiệm vụ đang chạy và các biểu đồ.
  * Số liệu tự cập nhật mỗi 30 giây.
  */
-export default async function Dashboard({ searchParams }: { searchParams: Promise<{ view?: string; ok?: string; err?: string }> }) {
+export default async function Dashboard({ searchParams }: { searchParams: Promise<{ view?: string; ok?: string; err?: string; ky?: string; kq?: string }> }) {
   // Admin không có trang Tổng quan nghiệp vụ → vào thẳng Quản trị hệ thống (vd ngay sau khi đăng nhập)
   const me = await getCurrentUser();
   if (me && isAdmin(me)) redirect("/admin");
@@ -92,14 +92,72 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const hrm = isHRM(user);
   // HRM: công tắc "Phòng tôi / Toàn công ty" (mặc định Toàn công ty); ở "Phòng tôi" giống hệt một Quản lý
   const company = companyView(user, sp.view);
+  const myKpi = user.employeeId ? await pendingKpiPlans(user.employeeId) : [];
   return (
     <div className="flex flex-col gap-5">
       <AutoRefresh seconds={30} />
       <Greeting name={user.employee?.fullName ?? user.email} right={hrm ? <ViewToggle company={company} hrefMine="/?view=mine" hrefCompany="/" /> : undefined} />
       {sp.ok || sp.err ? <Flash ok={sp.ok} err={sp.err} /> : null}
+      <MyKpiBanner plans={myKpi} />
       {hrm && company && <HrmInbox />}
-      {company ? <Overview user={user} company /> : isManager(user) || hrm ? <Overview user={user} company={false} /> : <Personal user={user} />}
+      {company || isManager(user) || hrm ? <Overview user={user} company={company} kpiPeriod={{ year: sp.ky, quarter: sp.kq, view: sp.view }} /> : <Personal user={user} hasKpiTodo={myKpi.length > 0} />}
     </div>
+  );
+}
+
+// ───────────────────────── Phiếu KPI của chính mình cần điền (mọi vai trò) ─────────────────────────
+
+/**
+ * Phiếu KPI đang ở bước "nhân viên cập nhật" (DRAFT) và kỳ đã bắt đầu — cùng điều kiện với ô "Việc cần làm" (lib/server/todos.ts).
+ * Kèm người giao, số chỉ số đã có số liệu, hạn (cuối kỳ) và lời nhắc của quản lý (nếu có).
+ */
+async function pendingKpiPlans(employeeId: string) {
+  const now = today();
+  const plans = await db.kpiPlan.findMany({
+    where: { employeeId, status: "DRAFT" },
+    orderBy: [{ year: "asc" }, { period: "asc" }],
+    select: { id: true, periodType: true, period: true, year: true, items: { select: { actual: true } }, createdBy: { select: { email: true, employee: { select: { fullName: true } } } } },
+  });
+  return plans
+    .map((p) => ({ p, r: periodRange(p.periodType, p.period, p.year) }))
+    .filter(({ r }) => r.start <= now)
+    .map(({ p, r }) => ({
+      id: p.id,
+      label: `KPI ${periodLabel(p.periodType, p.period, p.year)}`,
+      filled: p.items.filter((i) => i.actual !== null).length,
+      total: p.items.length,
+      end: r.end,
+      ended: r.end < now,
+      by: p.createdBy?.employee?.fullName ?? p.createdBy?.email ?? null,
+      reminder: demo.kpiReminders.get(p.id) ?? null,
+    }));
+}
+
+/** Banner "Bạn có N phiếu KPI cần điền" — nằm ngay dưới lời chào, bấm để mở phiếu */
+function MyKpiBanner({ plans }: { plans: Awaited<ReturnType<typeof pendingKpiPlans>> }) {
+  if (!plans.length) return null;
+  const allEnded = plans.every((p) => p.ended);
+  const title = `Bạn có ${plans.length} phiếu KPI cần ${allEnded ? "gửi kết quả" : "điền"}`;
+  if (plans.length === 1) {
+    const p = plans[0];
+    return (
+      <AlertBanner title={title} sig={`${p.id}:${p.filled}:${p.ended}:${p.reminder?.at ?? ""}`} href={`/kpi/${p.id}`} cta={p.ended ? "Gửi kết quả" : "Điền phiếu"}>
+        {p.reminder && <>{p.reminder.by} vừa nhắc bạn cập nhật. </>}
+        <Hl>{p.label}</Hl>
+        {p.by ? ` do ${p.by} giao` : ""}, mới có {p.filled}/{p.total} chỉ số có số liệu, {p.ended ? `đã hết kỳ ngày ${fmtDate(p.end)}` : `hạn ${fmtDate(p.end)}`}.
+      </AlertBanner>
+    );
+  }
+  return (
+    <AlertBanner title={title} sig={plans.map((p) => `${p.id}:${p.filled}:${p.ended}:${p.reminder?.at ?? ""}`).join(",")} href="/kpi" cta="Xem phiếu KPI">
+      {plans.map((p, i) => (
+        <span key={p.id}>
+          {i > 0 && ", "}
+          <Hl>{p.label}</Hl> ({p.filled}/{p.total} chỉ số{p.ended ? ", đã hết kỳ" : ""})
+        </span>
+      ))}
+      .
+    </AlertBanner>
   );
 }
 
@@ -111,19 +169,19 @@ async function HrmInbox() {
   const notSent = units.filter((u) => getSummary(u.id, q.year, q.quarter)?.status !== "SENT");
   if (!missing.length && !notSent.length)
     return (
-      <AlertBanner ok title="Mọi việc đã xong">
+      <AlertBanner ok title="Mọi việc đã xong" sig={q.value}>
         Đã import đủ chấm công và các phòng đã gửi bản cuối {q.label}.
       </AlertBanner>
     );
   return (
     <>
       {missing.length > 0 && (
-        <AlertBanner title="Chấm công chưa đầy đủ" href="/attendance" cta="Import chấm công">
+        <AlertBanner title="Chấm công chưa đầy đủ" sig={missing.join(",")} href="/attendance" cta="Import chấm công">
           Còn <Hl>{missing.length} tháng</Hl> chưa import chấm công: <Hl>{names(missing.map(attMonthLabel), "tháng", 4)}</Hl>.
         </AlertBanner>
       )}
       {notSent.length > 0 && (
-        <AlertBanner title={`Bản cuối KPI ${q.label}`} href={`/heads?yq=${q.value}`}>
+        <AlertBanner title={`Bản cuối KPI ${q.label}`} sig={notSent.map((u) => u.id).join(",")} href={`/heads?yq=${q.value}`}>
           <Hl>{names(notSent.map((u) => u.name), "phòng")}</Hl> chưa gửi bản cuối KPI {q.label}.
         </AlertBanner>
       )}
@@ -133,16 +191,19 @@ async function HrmInbox() {
 
 // ───────────────────────── HRM: toàn công ty · Quản lý (và HRM "Phòng tôi"): nhóm của mình ─────────────────────────
 
-async function Overview({ user, company }: { user: CurrentUser; company: boolean }) {
+async function Overview({ user, company, kpiPeriod }: { user: CurrentUser; company: boolean; kpiPeriod: { year?: string; quarter?: string; view?: string } }) {
   const view: DashView = company ? "company" : "team";
   const now = today();
+  // Kỳ của biểu đồ "Xu hướng KPI": ?ky=năm (mặc định năm nay), ?kq=1–4 (bỏ trống = cả năm)
+  const selYear = /^\d{4}$/.test(kpiPeriod.year ?? "") ? Number(kpiPeriod.year) : now.getUTCFullYear();
+  const selQ = /^[1-4]$/.test(kpiPeriod.quarter ?? "") ? Number(kpiPeriod.quarter) : 0;
   const scope: Prisma.EmployeeWhereInput = company ? companyScope() : teamScope(user);
   const inScope = { employee: scope };
   const WEEKS = 8;
   const monday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ((now.getUTCDay() + 6) % 7));
   const since = new Date(monday - (WEEKS - 1) * 7 * DAY);
 
-  const [employees, plans, openTasks, lateTasks, cycle, recentTasks, ongoing] = await Promise.all([
+  const [employees, plans, openTasks, lateTasks, cycle, recentTasks, ongoing, trendPlans, planYears] = await Promise.all([
     db.employee.findMany({ where: { AND: [scope, { status: { not: "RESIGNED" } }] }, select: { id: true, employeeType: true, departmentId: true, fullName: true, department: { select: { name: true } } } }),
     db.kpiPlan.findMany({
       where: { ...inScope, year: { gte: now.getUTCFullYear() - 1 } },
@@ -158,8 +219,11 @@ async function Overview({ user, company }: { user: CurrentUser; company: boolean
       take: ONGOING,
       select: ONGOING_SELECT,
     }),
+    db.kpiPlan.findMany({ where: { ...inScope, year: selYear }, select: { employeeId: true, year: true, periodType: true, period: true, items: { select: { actual: true, target: true, weight: true, formula: true } } } }),
+    db.kpiPlan.findMany({ where: inScope, distinct: ["year"], select: { year: true } }),
   ]);
   const byId = new Map(employees.map((e) => [e.id, e]));
+  const years = [...new Set([now.getUTCFullYear(), selYear, ...planYears.map((p) => p.year)])].sort((a, b) => b - a);
   const active = plans.filter((p) => byId.has(p.employeeId));
 
   // KPI quý hiện tại, tạm tính theo công thức dùng chung (chỉ chỉ số đã cập nhật) — mỗi người 1 điểm
@@ -190,11 +254,12 @@ async function Overview({ user, company }: { user: CurrentUser; company: boolean
     : scored.map(({ e, k }) => ({ label: e.fullName, value: Math.round(k.score! * 1000) / 10, href: `/employees/${e.id}?tab=performance`, hint: `${k.updated}/${k.total} chỉ số đã cập nhật` }));
   kpiRows.sort((a, b) => b.value - a.value);
 
-  // Xu hướng KPI 12 tháng (theo tháng kết thúc kỳ), tạm tính theo công thức dùng chung
-  const curKey = now.getUTCFullYear() * 12 + now.getUTCMonth() + 1;
-  const months = Array.from({ length: 12 }, (_, i) => curKey - 11 + i);
+  // Xu hướng KPI theo tháng (tháng kết thúc kỳ) của năm / quý đã chọn, tạm tính theo công thức dùng chung
+  const trendActive = trendPlans.filter((p) => byId.has(p.employeeId));
+  const months = (selQ ? [1, 2, 3].map((m) => (selQ - 1) * 3 + m) : Array.from({ length: 12 }, (_, i) => i + 1)).map((m) => selYear * 12 + m);
+  const periodText = selQ ? `quý ${selQ}/${selYear}` : `năm ${selYear}`;
   const trend = months.map((k) => {
-    const ofMonth = active.filter((p) => periodKey(p) === k);
+    const ofMonth = trendActive.filter((p) => periodKey(p) === k);
     const score = provisionalKpi(ofMonth.flatMap((p) => p.items)).score;
     return {
       label: `T${monthOf(k)}`,
@@ -218,7 +283,7 @@ async function Overview({ user, company }: { user: CurrentUser; company: boolean
     key: s,
     label: KPI_STEP_SHORT[s],
     value: thisYear.filter((p) => stepOf(p) === s).length,
-    color: [C.seq[0], C.seq[2], C.seq[3], C.seq[4]][i],
+    color: C.steps[i],
     href: `/kpi/plans?status=${s}`,
   }));
 
@@ -240,7 +305,7 @@ async function Overview({ user, company }: { user: CurrentUser; company: boolean
       {/* Banner cho Quản lý (HRM toàn công ty đã có banner "Cần xử lý" riêng) */}
       {!company &&
         (below || lateTasks ? (
-          <AlertBanner title="Cần chú ý trong nhóm" href={below ? "/kpi/plans" : "/tasks?view=all&show=overdue"}>
+          <AlertBanner title="Cần chú ý trong nhóm" sig={`${view}:${q}/${qy}:${belowList.join(",")}:${lateTasks}`} href={below ? "/kpi/plans" : "/tasks?view=all&show=overdue"}>
             {below > 0 && (
               <>
                 KPI quý {q} của <Hl>{names(belowList, "người")}</Hl> đang dưới 80%.{" "}
@@ -253,13 +318,13 @@ async function Overview({ user, company }: { user: CurrentUser; company: boolean
             )}
           </AlertBanner>
         ) : (
-          <AlertBanner ok title="Nhóm đang ổn định">
+          <AlertBanner ok title="Nhóm đang ổn định" sig={`${view}:${q}/${qy}`}>
             Không có nhiệm vụ quá hạn và chưa ai dưới 80% KPI quý {q}.
           </AlertBanner>
         ))}
 
       {/* 4 chỉ số quan trọng nhất */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard icon={Users} label={company ? "Nhân sự đang làm" : "Nhân viên trong nhóm"} value={String(employees.length)} sub={`${official} chính thức`} href="/employees" />
         <StatCard
           icon={Target}
@@ -302,15 +367,20 @@ async function Overview({ user, company }: { user: CurrentUser; company: boolean
           },
           {
             id: "kpiTrend",
-            title: "Xu hướng KPI 12 tháng",
+            title: "Xu hướng KPI",
             node: (
               <DashCard
                 icon={ChartColumn}
-                title="Xu hướng KPI 12 tháng"
-                subtitle={`${company ? "Trung bình toàn công ty" : "Trung bình nhóm"}, ${monthYear(months[0])} đến ${monthYear(months[11])}`}
-                actions={<PillLink href="/kpi/plans">Xem chi tiết</PillLink>}
+                title="Xu hướng KPI"
+                subtitle={`${company ? "Trung bình toàn công ty" : "Trung bình nhóm"}, ${periodText}`}
+                actions={
+                  <>
+                    <KpiPeriodPicker years={years} year={selYear} quarter={selQ} keep={{ view: kpiPeriod.view }} />
+                    <CircleLink href="/kpi/plans" icon={ArrowUpRight} label="Xem phiếu KPI" />
+                  </>
+                }
               >
-                <SoftBarChart bars={trend} max={100} unit="%" target={{ value: KPI_OK * 100, label: "Mốc Hoàn thành 80%" }} emptyText="Không có dữ liệu KPI trong 12 tháng gần nhất" />
+                <SoftBarChart bars={trend} max={100} unit="%" target={{ value: KPI_OK * 100, label: "Mốc Hoàn thành 80%" }} emptyText={`Không có dữ liệu KPI trong ${periodText}`} />
               </DashCard>
             ),
           },
@@ -330,7 +400,7 @@ async function Overview({ user, company }: { user: CurrentUser; company: boolean
               <DashCard icon={Users} title="Cơ cấu nhân sự" subtitle="Theo loại hợp đồng" actions={<CircleLink href="/employees" icon={ArrowUpRight} label="Xem nhân viên" />}>
                 <Donut
                   centerLabel="nhân sự"
-                  segments={TYPES.map((t, i) => ({ key: t, label: employeeTypeLabel[t], value: employees.filter((e) => e.employeeType === t).length, color: [C.s1, C.s2, C.s3, C.s4][i], href: `/employees?type=${t}` }))}
+                  segments={TYPES.map((t, i) => ({ key: t, label: employeeTypeLabel[t], value: employees.filter((e) => e.employeeType === t).length, color: [C.steps[3], C.steps[2], C.steps[1], C.steps[0]][i], href: `/employees?type=${t}` }))}
                 />
               </DashCard>
             ),
@@ -351,14 +421,14 @@ async function Overview({ user, company }: { user: CurrentUser; company: boolean
                     <div className="w-full">
                       <ColumnChart
                         height={96}
-                        cols={Object.keys(GRADE_INFO).map((g, i) => ({ label: `Hạng ${g}`, sub: GRADE_INFO[g].range, value: cycle.reviews.filter((r) => r.grade === g).length, color: C.seq[4 - i] }))}
+                        cols={Object.keys(GRADE_INFO).map((g, i) => ({ label: `Hạng ${g}`, sub: GRADE_INFO[g].range, value: cycle.reviews.filter((r) => r.grade === g).length, color: C.main }))}
                         unit=" người"
                         emptyText="Chưa có kết quả xếp hạng"
                       />
                     </div>
                   </div>
                 ) : (
-                  <p className="py-8 text-center text-sm text-slate-500">Không có kỳ đánh giá đang mở.</p>
+                  <p className="py-8 text-center text-[13px] text-muted-foreground">Không có kỳ đánh giá đang mở.</p>
                 )}
               </DashCard>
             ),
@@ -382,8 +452,8 @@ async function Overview({ user, company }: { user: CurrentUser; company: boolean
                   height={150}
                   labels={weeks.map(weekLabel)}
                   series={[
-                    { key: "created", label: "Được giao", color: C.s1, values: weeks.map((w) => recentTasks.filter((t) => inWeek(t.createdAt, w)).length) },
-                    { key: "done", label: "Hoàn thành", color: C.s2, values: weeks.map((w) => recentTasks.filter((t) => t.status === "DONE" && inWeek(t.completedAt, w)).length) },
+                    { key: "created", label: "Được giao", color: C.compare, values: weeks.map((w) => recentTasks.filter((t) => inWeek(t.createdAt, w)).length) },
+                    { key: "done", label: "Hoàn thành", color: C.main, values: weeks.map((w) => recentTasks.filter((t) => t.status === "DONE" && inWeek(t.completedAt, w)).length) },
                   ]}
                   emptyText={`Không có dữ liệu nhiệm vụ trong ${WEEKS} tuần gần nhất`}
                 />
@@ -398,12 +468,12 @@ async function Overview({ user, company }: { user: CurrentUser; company: boolean
 
 // ───────────────────────── Nhân viên: số liệu của bản thân ─────────────────────────
 
-async function Personal({ user }: { user: CurrentUser }) {
+async function Personal({ user, hasKpiTodo }: { user: CurrentUser; hasKpiTodo: boolean }) {
   const employeeId = user.employeeId;
   if (!employeeId) {
     return (
       <DashCard title="Tổng quan">
-        <p className="py-8 text-center text-sm text-slate-500">Tài khoản chưa được liên kết với hồ sơ nhân viên.</p>
+        <p className="py-8 text-center text-[13px] text-muted-foreground">Tài khoản chưa được liên kết với hồ sơ nhân viên.</p>
       </DashCard>
     );
   }
@@ -435,20 +505,20 @@ async function Personal({ user }: { user: CurrentUser }) {
   return (
     <>
       {lateTasks > 0 ? (
-        <AlertBanner title="Nhiệm vụ quá hạn" href="/tasks">
+        <AlertBanner title="Nhiệm vụ quá hạn" sig={String(lateTasks)} href="/tasks">
           Bạn có <Hl>{lateTasks} nhiệm vụ</Hl> đã quá hạn, cần xử lý hoặc báo cáo sớm.
         </AlertBanner>
       ) : quarterK.score !== null && quarterK.score < KPI_OK ? (
-        <AlertBanner title={`KPI quý ${q}`} href="/kpi">
+        <AlertBanner title={`KPI quý ${q}`} sig={`${year}:${pct1(quarterK.score)}`} href="/kpi">
           KPI quý {q} tạm tính của bạn đang <Hl>{pct1(quarterK.score)}</Hl>, dưới mốc 80%.
         </AlertBanner>
-      ) : (
-        <AlertBanner ok title="Mọi thứ đang đúng tiến độ">
+      ) : hasKpiTodo ? null : (
+        <AlertBanner ok title="Mọi thứ đang đúng tiến độ" sig="me">
           Bạn không có nhiệm vụ quá hạn.
         </AlertBanner>
       )}
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         <StatCard
           icon={Target}
           label={`KPI quý ${q} tạm tính`}
@@ -519,9 +589,9 @@ async function Personal({ user }: { user: CurrentUser }) {
                   centerLabel="đang mở"
                   emptyText="Không có nhiệm vụ đang mở"
                   segments={[
-                    { key: "TODO", label: taskStatusLabel.TODO, value: taskCount("TODO"), color: C.seq[0] },
-                    { key: "IN_PROGRESS", label: taskStatusLabel.IN_PROGRESS, value: taskCount("IN_PROGRESS"), color: C.seq[2] },
-                    { key: "REVIEW", label: taskStatusLabel.REVIEW, value: taskCount("REVIEW"), color: C.seq[4] },
+                    { key: "TODO", label: taskStatusLabel.TODO, value: taskCount("TODO"), color: C.steps[0] },
+                    { key: "IN_PROGRESS", label: taskStatusLabel.IN_PROGRESS, value: taskCount("IN_PROGRESS"), color: C.steps[2] },
+                    { key: "REVIEW", label: taskStatusLabel.REVIEW, value: taskCount("REVIEW"), color: C.steps[3] },
                   ]}
                 />
               </DashCard>

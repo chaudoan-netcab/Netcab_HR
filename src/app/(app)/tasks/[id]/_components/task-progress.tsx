@@ -45,7 +45,7 @@ function StepNumber({ n }: { n: number }) {
 export function TaskProgress({ status, returned, dates }: { status: TaskStatus; returned: boolean; dates: ProgressDates }) {
   if (status === "CANCELLED")
     return (
-      <div className="card mb-6 px-5 py-4 text-sm font-medium text-slate-500 sm:px-6">Nhiệm vụ đã hủy</div>
+      <div className="card mb-5 px-5 py-4 text-[13px] font-medium text-muted-foreground max-md:px-3">Nhiệm vụ đã hủy</div>
     );
 
   const idx = STEPS.findIndex((s) => s.key === status);
@@ -69,7 +69,7 @@ export function TaskProgress({ status, returned, dates }: { status: TaskStatus; 
   };
 
   return (
-    <div className="card mb-6 px-4 py-3.5 sm:px-6 sm:py-4">
+    <div className="card mb-5 px-3 py-3.5 sm:px-5 sm:py-4">
       <ol className="flex" aria-label={`Tiến trình: bước ${idx + 1}/4`}>
         {STEPS.map((s, i) => {
           const last = i === STEPS.length - 1;
@@ -78,24 +78,24 @@ export function TaskProgress({ status, returned, dates }: { status: TaskStatus; 
           const current = !allDone && i === idx;
 
           const circle = warn
-            ? "border-red-500 bg-red-50 text-red-600"
+            ? "border-status-danger bg-card text-status-danger-text"
             : done
               ? allDone
-                ? "border-emerald-500 bg-emerald-500 text-white"
-                : "border-brand-600 bg-brand-600 text-white"
+                ? "border-status-success bg-status-success text-status-foreground"
+                : "border-primary bg-primary text-primary-foreground"
               : current
-                ? "border-brand-600 bg-white text-brand-700 ring-4 ring-brand-100"
-                : "border-slate-300 bg-white text-slate-400";
-          const line = i < idx || allDone ? (allDone ? "bg-emerald-500" : "bg-brand-600") : "bg-slate-200";
+                ? "border-primary bg-card text-primary-text"
+                : "border-foreground/20 bg-card text-muted-foreground";
+          const line = i < idx || allDone ? (allDone ? "bg-status-success" : "bg-primary") : "bg-foreground/10";
           const title = warn
-            ? "font-semibold text-red-700"
+            ? "font-medium text-status-danger-text"
             : current
-              ? "font-semibold text-brand-700"
+              ? "font-semibold text-primary-text"
               : done
                 ? allDone && last
-                  ? "font-semibold text-emerald-700"
-                  : "font-semibold text-slate-800"
-                : "font-medium text-slate-400";
+                  ? "font-medium text-status-success-text"
+                  : "font-medium text-foreground"
+                : "font-medium text-muted-foreground";
           const note = sub(i);
 
           return (
@@ -107,8 +107,8 @@ export function TaskProgress({ status, returned, dates }: { status: TaskStatus; 
                 {!last && <span className={`mx-1.5 h-0.5 flex-1 rounded-full sm:mx-2 ${line}`} aria-hidden />}
               </div>
               <div className="mt-1.5 pr-1.5 sm:mt-2 sm:pr-3">
-                <div className={`text-[11px] leading-tight sm:text-sm ${title}`}>{warn ? "Bị trả lại" : s.label}</div>
-                {note && <div className={`mt-0.5 text-[10px] leading-tight sm:text-xs ${warn ? "text-red-600" : "text-slate-500"}`}>{note}</div>}
+                <div className={`text-[11px] leading-tight sm:text-[13px] ${title}`}>{warn ? "Bị trả lại" : s.label}</div>
+                {note && <div className={`mt-0.5 text-[11px] leading-tight tabular-nums sm:text-xs ${warn ? "text-status-danger-text" : "text-muted-foreground"}`}>{note}</div>}
               </div>
             </li>
           );

@@ -25,14 +25,14 @@ export function ApproveDialog({ taskTitle, assignee, resultNote, action, onClose
       {resultNote && (
         <div className="mb-4">
           <div className="label">Kết quả {assignee} đã báo cáo</div>
-          <p className="max-h-40 overflow-y-auto whitespace-pre-line rounded-lg bg-slate-50 p-3 text-sm text-slate-700">{resultNote}</p>
+          <p className="max-h-40 overflow-y-auto whitespace-pre-line rounded-[4px] bg-muted p-3 text-[13px] text-foreground">{resultNote}</p>
         </div>
       )}
       <label className="block">
         <span className="label">Nhận xét (không bắt buộc)</span>
         <textarea name="note" rows={3} className="input" placeholder="Ghi nhận, góp ý cho lần sau" />
       </label>
-      <p className="mt-3 text-xs text-slate-500">Sau khi xác nhận, nhiệm vụ chuyển sang Hoàn thành và không sửa được nữa.</p>
+      <p className="mt-3 text-xs text-muted-foreground">Sau khi xác nhận, nhiệm vụ chuyển sang Hoàn thành và không sửa được nữa.</p>
     </Modal>
   );
 }

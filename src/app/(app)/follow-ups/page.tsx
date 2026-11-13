@@ -75,9 +75,9 @@ function pickQuarter(yq?: string) {
 
 function Filters({ q, status, filters, hidden, clear }: { q: ReturnType<typeof pickQuarter>; status: string; filters: Record<string, string>; hidden?: Record<string, string>; clear: string | null }) {
   return (
-    <AutoFilterForm className="card mb-4 flex flex-wrap items-end gap-3 p-4">
+    <AutoFilterForm className="card mb-4 flex flex-wrap items-end gap-3 p-4 max-md:p-3">
       {Object.entries(hidden ?? {}).map(([k, val]) => <input key={k} type="hidden" name={k} value={val} />)}
-      <label className="w-48">
+      <label className="min-w-0 flex-1 sm:w-48 sm:flex-none">
         <span className="label">Quý</span>
         <select name="yq" defaultValue={`${q.year}-${q.quarter}`} className="input">
           {q.quarters.map(({ y, q: qq }) => (
@@ -88,7 +88,7 @@ function Filters({ q, status, filters, hidden, clear }: { q: ReturnType<typeof p
           ))}
         </select>
       </label>
-      <label className="w-60">
+      <label className="min-w-0 flex-1 sm:w-60 sm:flex-none">
         <span className="label">Trạng thái</span>
         <select name="status" defaultValue={status} className="input">
           {Object.entries(filters).map(([k, label]) => (
@@ -159,36 +159,55 @@ async function History({ user, company }: { user: User; company: boolean }) {
   const myCodes = company ? null : new Set((await db.employee.findMany({ where: teamScope(user), select: { code: true } })).map((e) => e.code));
   const logs = REMINDER_SAMPLES.filter((r) => (company ? isDeptReminder(r.type) : !isDeptReminder(r.type) && (r.senderEmail === user.email || myCodes!.has(r.recipientCode)))).sort((a, b) => b.at.localeCompare(a.at));
   return (
-    <Card pad={false} title={company ? "Lịch sử nhắc Trưởng phòng" : "Lịch sử nhắc"}>
+    <Card pad={false} title={company ? "Lịch sử nhắc Trưởng phòng" : "Lịch sử nhắc"} className={logs.length ? "max-md:border-0 max-md:bg-transparent max-md:[&>div:first-child]:px-0" : ""}>
       {logs.length === 0 ? (
         <EmptyState title="Chưa có lịch sử nhắc" />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Thời điểm</th>
-                <th>Người gửi</th>
-                <th>{company ? "Trưởng phòng nhận" : "Người nhận"}</th>
-                <th>Loại nhắc</th>
-                <th>Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((r) => (
-                <tr key={r.id}>
-                  <td className="whitespace-nowrap tabular-nums">{fmtDateTime(new Date(r.at))}</td>
-                  <td>{r.senderName}</td>
-                  <td>{r.recipientName}</td>
-                  <td>{REMINDER_LABEL[r.type].replace(" (gửi Trưởng phòng)", "")}</td>
-                  <td>
-                    <Badge tone={REMINDER_STATUS_TONE[r.status]}>{REMINDER_STATUS_LABEL[r.status]}</Badge>
-                  </td>
+        <>
+          <div className="hidden overflow-x-auto md:block">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Thời điểm</th>
+                  <th className="hidden xl:table-cell">Người gửi</th>
+                  <th>{company ? "Trưởng phòng nhận" : "Người nhận"}</th>
+                  <th>Loại nhắc</th>
+                  <th>Trạng thái</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {logs.map((r) => (
+                  <tr key={r.id}>
+                    <td className="whitespace-nowrap tabular-nums">{fmtDateTime(new Date(r.at))}</td>
+                    <td className="hidden xl:table-cell">{r.senderName}</td>
+                    <td>{r.recipientName}</td>
+                    <td>{REMINDER_LABEL[r.type].replace(" (gửi Trưởng phòng)", "")}</td>
+                    <td>
+                      <Badge tone={REMINDER_STATUS_TONE[r.status]}>{REMINDER_STATUS_LABEL[r.status]}</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <ul className="space-y-3 md:hidden">
+            {logs.map((r) => (
+              <li key={r.id}>
+                <article className="rounded-[6px] border border-border bg-card p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs tabular-nums text-muted-foreground">{fmtDateTime(new Date(r.at))}</span>
+                    <Badge tone={REMINDER_STATUS_TONE[r.status]}>{REMINDER_STATUS_LABEL[r.status]}</Badge>
+                  </div>
+                  <div className="mt-0.5 text-[14px] font-medium text-foreground">{r.recipientName}</div>
+                  <dl className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-[13px]">
+                    <div><dt className="inline text-muted-foreground">Loại nhắc:</dt> <dd className="inline">{REMINDER_LABEL[r.type].replace(" (gửi Trưởng phòng)", "")}</dd></div>
+                    <div><dt className="inline text-muted-foreground">Người gửi:</dt> <dd className="inline">{r.senderName}</dd></div>
+                  </dl>
+                </article>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </Card>
   );

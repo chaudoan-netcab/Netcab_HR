@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { KpiFormula } from "@prisma/client";
 import { itemCompletion, kpiGrade, pct, toDisplay } from "@/lib/kpi";
+import { gradeColor } from "./mobile-card";
 
 export type EntryItem = {
   id: string;
@@ -20,14 +21,20 @@ export type EntryItem = {
   custom?: boolean;
 };
 
-const gradeColor: Record<string, string> = {
-  green: "bg-emerald-50 text-emerald-700",
-  blue: "bg-brand-50 text-brand-700",
-  amber: "bg-amber-50 text-amber-700",
-  red: "bg-red-50 text-red-700",
-  gray: "bg-slate-100 text-slate-700",
-  violet: "bg-violet-50 text-violet-700",
-};
+// Điện thoại (< 768px): cùng một bảng (không nhân đôi ô nhập) nhưng mỗi dòng xếp thành một mục danh sách,
+// các ô số có nhãn riêng (data-label). Khi in luôn trả về dạng bảng.
+const M_TABLE = "max-md:block print:table";
+const M_HEAD = "max-md:hidden print:table-header-group";
+const M_BODY = "max-md:block print:table-row-group";
+const M_FOOT = "max-md:block print:table-footer-group";
+const M_HIDE = "max-md:hidden print:table-cell";
+const M_ROW =
+  "max-md:grid max-md:grid-cols-2 max-md:gap-x-4 max-md:gap-y-3 max-md:border-t max-md:border-border max-md:px-3 max-md:py-3 print:table-row print:border-0";
+const M_NAME = "max-md:col-span-2 max-md:block max-md:p-0 print:table-cell print:px-3 print:py-2.5";
+const M_CELL =
+  "max-md:block max-md:p-0 max-md:text-left max-md:before:mb-1 max-md:before:block max-md:before:text-xs max-md:before:font-normal max-md:before:text-muted-foreground max-md:before:content-[attr(data-label)] print:table-cell print:px-3 print:py-2.5 print:before:content-none";
+const M_FOOT_ROW = "max-md:flex max-md:items-baseline max-md:gap-3 max-md:px-3 max-md:py-2.5 print:table-row";
+const M_FOOT_CELL = "max-md:p-0 print:table-cell print:px-3 print:py-3";
 
 /** Bảng KPI giống file Excel, tự tính % hoàn thành khi gõ "Mức độ thực hiện" */
 export function KpiEntryTable({ items, editable }: { items: EntryItem[]; editable: boolean }) {
@@ -45,98 +52,112 @@ export function KpiEntryTable({ items, editable }: { items: EntryItem[]; editabl
   const totalWeight = items.reduce((s, i) => s + i.weight, 0);
   const grade = kpiGrade(total);
   const sections = [...new Set(items.map((i) => i.section))];
+  const weightOff = Math.abs(totalWeight - 1) > 0.0001;
   let stt = 0;
 
   return (
-    <div className="overflow-x-auto">
-      <table className="table min-w-[900px]">
-        <thead>
-          <tr>
-            <th className="w-10">STT</th>
-            <th>Tên chỉ số KPI</th>
-            <th className="w-16">Đơn vị</th>
-            <th className="w-20 text-right">Chỉ tiêu</th>
-            <th className="w-32">Mức độ thực hiện</th>
-            <th className="w-24 text-right">% hoàn thành</th>
-            <th className="w-20 text-right">Tỉ trọng</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sections.map((sec) => (
-            <SectionRows key={sec} title={sec}>
-              {scored
-                .filter((x) => x.i.section === sec)
-                .map(({ i, completion }) => {
-                  stt++;
-                  const isPct = i.unit.trim() === "%";
-                  return (
-                    <tr key={i.id}>
-                      <td className="tabular-nums text-slate-500">{stt}</td>
-                      <td>
-                        <div className="font-medium text-slate-800">
-                          {i.name}
-                          {i.custom && <span className="ml-2 inline-block rounded bg-violet-50 px-1.5 py-0.5 align-middle text-[10px] font-semibold uppercase text-violet-700">Riêng</span>}
-                        </div>
-                        {i.measurement && <div className="mt-0.5 text-xs text-slate-500">{i.measurement}</div>}
-                        <div className="mt-1 text-[11px] text-slate-400">
-                          Cách tính: {i.formulaLabel}
-                          {i.note && <> · {i.note}</>}
-                        </div>
-                      </td>
-                      <td>{i.unit}</td>
-                      <td className="text-right tabular-nums">{isPct ? pct(i.target, 0) : i.target}</td>
-                      <td>
-                        {editable ? (
-                          <div>
-                            <div className="flex items-center gap-1">
-                              <input
-                                name={`actual_${i.id}`}
-                                data-kpi-name={i.name}
-                                value={values[i.id] ?? ""}
-                                onChange={(ev) => setValues((v) => ({ ...v, [i.id]: ev.target.value }))}
-                                inputMode="decimal"
-                                aria-invalid={!(values[i.id] ?? "").trim() || undefined}
-                                className={`input w-20 text-right tabular-nums ${(values[i.id] ?? "").trim() ? "" : "border-amber-300 bg-amber-50/40"}`}
-                              />
-                              <span className="text-xs text-slate-500">{isPct ? "%" : i.unit}</span>
-                            </div>
-                            {/* Ô trống không được tính là 0 vụ: phải nhập 0 thì mới gửi được */}
-                            {!(values[i.id] ?? "").trim() && (i.formula === "VIOLATION_STEPS" || i.formula === "ZERO_TOLERANCE") && (
-                              <div className="mt-0.5 text-[10px] leading-tight text-amber-700">Nhập 0 nếu không có vụ</div>
-                            )}
+    <div>
+      <div className="overflow-x-auto">
+        <table className={`table md:min-w-[720px] ${M_TABLE}`}>
+          <thead className={M_HEAD}>
+            <tr>
+              <th className="w-10">STT</th>
+              <th>Tên chỉ số KPI</th>
+              <th className="w-16">Đơn vị</th>
+              <th className="w-20 text-right">Chỉ tiêu</th>
+              <th className="w-32">Mức độ thực hiện</th>
+              <th className="w-24 text-right">% hoàn thành</th>
+              <th className="w-20 text-right">Tỉ trọng</th>
+            </tr>
+          </thead>
+          <tbody className={M_BODY}>
+            {sections.map((sec) => (
+              <SectionRows key={sec} title={sec}>
+                {scored
+                  .filter((x) => x.i.section === sec)
+                  .map(({ i, completion }) => {
+                    stt++;
+                    const isPct = i.unit.trim() === "%";
+                    const empty = !(values[i.id] ?? "").trim();
+                    return (
+                      <tr key={i.id} className={M_ROW}>
+                        <td className={`tabular-nums text-muted-foreground ${M_HIDE}`}>{stt}</td>
+                        <td className={M_NAME}>
+                          <div className="font-medium text-foreground">
+                            <span className="mr-1 tabular-nums text-muted-foreground md:hidden print:hidden">{stt}.</span>
+                            {i.name}
+                            {i.custom && <span className="ml-2 align-middle text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">Riêng</span>}
                           </div>
-                        ) : (
-                          <span className="tabular-nums">{values[i.id] ? `${values[i.id]}${isPct ? "%" : ` ${i.unit}`}` : "—"}</span>
-                        )}
-                      </td>
-                      <td className="text-right tabular-nums">
-                        <div className="font-semibold">{pct(i.weight * completion)}</div>
-                        <div className="text-[11px] text-slate-400">đạt {pct(completion, 0)}</div>
-                      </td>
-                      <td className="text-right tabular-nums">{pct(i.weight, 0)}</td>
-                    </tr>
-                  );
-                })}
-            </SectionRows>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr className="bg-slate-50 font-semibold">
-            <td colSpan={5} className="px-3 py-3 text-right">TỔNG</td>
-            <td className="px-3 py-3 text-right text-base tabular-nums text-slate-900">{pct(total)}</td>
-            <td className={`px-3 py-3 text-right tabular-nums ${Math.abs(totalWeight - 1) > 0.0001 ? "text-red-600" : ""}`}>{pct(totalWeight, 0)}</td>
-          </tr>
-          <tr>
-            <td colSpan={5} className="px-3 py-3 text-right text-sm font-semibold">XẾP LOẠI HIỆU QUẢ CÔNG VIỆC (KPI)</td>
-            <td colSpan={2} className="px-3 py-3 text-right">
-              {grade && <span className={`badge text-sm ${gradeColor[grade.tone]}`}>{grade.label.toUpperCase()}</span>}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
-      <p className="mt-2 px-3 text-xs text-slate-500">
+                          {i.measurement && <div className="mt-0.5 text-xs text-muted-foreground">{i.measurement}</div>}
+                          <div className="mt-1 text-[11px] text-muted-foreground">
+                            Cách tính: {i.formulaLabel}
+                            {i.note && <> · {i.note}</>}
+                          </div>
+                        </td>
+                        <td className={M_HIDE}>{i.unit}</td>
+                        <td data-label="Chỉ tiêu" className={`whitespace-nowrap text-right tabular-nums ${M_CELL} print:text-right`}>
+                          {isPct ? pct(i.target, 0) : i.target}
+                          {!isPct && <span className="text-muted-foreground md:hidden print:hidden"> {i.unit}</span>}
+                        </td>
+                        <td data-label="Mức độ thực hiện" className={M_CELL}>
+                          {editable ? (
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  name={`actual_${i.id}`}
+                                  data-kpi-name={i.name}
+                                  value={values[i.id] ?? ""}
+                                  onChange={(ev) => setValues((v) => ({ ...v, [i.id]: ev.target.value }))}
+                                  inputMode="decimal"
+                                  aria-invalid={empty || undefined}
+                                  aria-label={`Mức độ thực hiện: ${i.name}`}
+                                  className={`input w-20 text-right tabular-nums max-md:w-24 ${empty ? "border-status-warning" : ""}`}
+                                />
+                                <span className="text-xs text-muted-foreground">{isPct ? "%" : i.unit}</span>
+                              </div>
+                              {/* Ô trống không được tính là 0 vụ: phải nhập 0 thì mới gửi được */}
+                              {empty && (i.formula === "VIOLATION_STEPS" || i.formula === "ZERO_TOLERANCE") && (
+                                <div className="mt-1 text-[11px] leading-tight text-status-warning-text">Nhập 0 nếu không có vụ</div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="tabular-nums">{values[i.id] ? `${values[i.id]}${isPct ? "%" : ` ${i.unit}`}` : "—"}</span>
+                          )}
+                        </td>
+                        <td data-label="% hoàn thành" className={`text-right tabular-nums ${M_CELL} print:text-right`}>
+                          <div className="font-semibold text-foreground">{pct(i.weight * completion)}</div>
+                          <div className="text-[11px] text-muted-foreground">đạt {pct(completion, 0)}</div>
+                        </td>
+                        <td data-label="Tỉ trọng" className={`text-right tabular-nums ${M_CELL} print:text-right`}>{pct(i.weight, 0)}</td>
+                      </tr>
+                    );
+                  })}
+              </SectionRows>
+            ))}
+          </tbody>
+          <tfoot className={M_FOOT}>
+            <tr className={`bg-muted/50 font-semibold max-md:border-t max-md:border-border ${M_FOOT_ROW}`}>
+              <td colSpan={5} className={`px-3 py-3 text-right max-md:flex-1 max-md:text-left ${M_FOOT_CELL} print:text-right`}>TỔNG</td>
+              <td className={`px-3 py-3 text-right text-base tabular-nums text-foreground ${M_FOOT_CELL}`}>{pct(total)}</td>
+              <td
+                data-label="Tỉ trọng"
+                className={`px-3 py-3 text-right tabular-nums max-md:before:mr-1 max-md:before:text-xs max-md:before:font-normal max-md:before:text-muted-foreground max-md:before:content-[attr(data-label)] print:before:content-none ${M_FOOT_CELL} ${weightOff ? "text-status-danger-text" : ""}`}
+              >
+                {pct(totalWeight, 0)}
+              </td>
+            </tr>
+            <tr className={M_FOOT_ROW}>
+              <td colSpan={5} className={`px-3 py-3 text-right text-sm font-semibold max-md:flex-1 max-md:text-left ${M_FOOT_CELL} print:text-right`}>XẾP LOẠI HIỆU QUẢ CÔNG VIỆC (KPI)</td>
+              <td colSpan={2} className={`px-3 py-3 text-right ${M_FOOT_CELL}`}>
+                {grade && <span className={`whitespace-nowrap text-sm font-semibold ${gradeColor(grade.tone)}`}>{grade.label.toUpperCase()}</span>}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <p className="px-5 pt-2 pb-4 text-xs text-muted-foreground max-md:px-3">
         Thang xếp loại: ≥90% Hoàn thành tốt · 80 – dưới 90% Hoàn thành · 60 – dưới 80% Cần cải thiện · 50 – dưới 60% Trung bình · &lt;50% Không hoàn thành.
-        {Math.abs(totalWeight - 1) > 0.0001 && <span className="ml-1 font-medium text-red-600">Tổng tỉ trọng chưa bằng 100%.</span>}
+        {weightOff && <span className="ml-1 font-medium text-status-danger-text">Tổng tỉ trọng chưa bằng 100%.</span>}
       </p>
     </div>
   );
@@ -145,8 +166,8 @@ export function KpiEntryTable({ items, editable }: { items: EntryItem[]; editabl
 function SectionRows({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <>
-      <tr>
-        <td colSpan={7} className="bg-brand-50/60 text-xs font-semibold uppercase tracking-wide text-brand-900">
+      <tr className="max-md:block print:table-row">
+        <td colSpan={7} className="bg-muted/50 text-xs font-semibold uppercase tracking-[0.06em] text-foreground max-md:block max-md:px-3 max-md:py-2 print:table-cell">
           {title}
         </td>
       </tr>

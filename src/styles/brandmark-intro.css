@@ -1,0 +1,196 @@
+/*
+ * Logo NETCAB có slogan + hiệu ứng mở đầu. Chép từ theme đăng nhập Netcab SSO.
+ * Cần: biến --brand / --brand-square (xem cuối file), ảnh logo-*-wordmark.png, logo-*-tagline-*.png
+ * cùng thư mục, và markup mẫu trong references/logo.md. Dark mode theo class .dark trên <html>.
+ */
+:root { --brand: #1302a5; --brand-square: #1302a5; }
+.dark { --brand: #ffffff; --brand-square: #ffffff; }
+
+/* ---------- Logo NETCAB ngang có slogan (bộ nhận diện mới), có chuyển động khi mở trang ----------
+ * Vị trí từng phần lấy theo file gốc "LOGO NETCAB 3.png" (8334px), hệ tọa độ:
+ * rộng 8334, cao 2337 (từ đỉnh biểu trưng y=2998 tới đáy y=5335).
+ * Thứ tự (~3 giây): 1) biểu trưng to ở giữa cột, bốn ngoặc khép vào, ô vuông hiện ra
+ * 2) biểu trưng thu nhỏ, dời sang trái về chỗ trong logo  3) chữ NETCAB hiện dần từ trái
+ * sang phải (wipe reveal)  4) hai dòng slogan lần lượt trượt lên.
+ */
+.nc-mark-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nc-brandmark {
+  position: relative;
+  width: min(84%, 500px);
+  aspect-ratio: 8334 / 2337;
+}
+
+.nc-brandmark > * {
+  position: absolute;
+  display: block;
+}
+
+/* Bản xanh và bản trắng chồng lên nhau, đổi bằng visibility chứ không dùng display:none:
+   phần tử hiện lại từ display:none sẽ chạy lại animation từ đầu khi người dùng đổi sáng/tối. */
+.nc-brandmark img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.nc-brandmark .nc-bm-dark {
+  visibility: hidden;
+}
+.dark .nc-brandmark .nc-bm-light {
+  visibility: hidden;
+}
+.dark .nc-brandmark .nc-bm-dark {
+  visibility: visible;
+}
+
+.nc-mark {
+  left: 0;
+  top: 0;
+  width: calc(2897 / 8334 * 100%);
+  height: 100%;
+  overflow: visible;
+}
+.nc-mark .nc-mark-bar {
+  stroke: var(--brand);
+  stroke-width: 178;
+  stroke-linecap: round;
+  fill: none;
+}
+.nc-mark .nc-mark-square {
+  fill: var(--brand-square);
+}
+
+.nc-bm-word {
+  left: calc(3433 / 8334 * 100%);
+  top: calc(478 / 2337 * 100%);
+  width: calc(4901 / 8334 * 100%);
+  height: calc(626 / 2337 * 100%);
+}
+
+/* Mỗi dòng slogan nằm trong một khung che, chữ trượt lên từ dưới mép khung */
+.nc-bm-tag {
+  left: calc(3433 / 8334 * 100%);
+  width: calc(4901 / 8334 * 100%);
+  height: calc(253 / 2337 * 100%);
+  overflow: hidden;
+}
+.nc-bm-tag-1 {
+  top: calc(1277 / 2337 * 100%);
+}
+.nc-bm-tag-2 {
+  top: calc(1606 / 2337 * 100%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .nc-mark .nc-mark-bar,
+  .nc-mark .nc-mark-square {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation-duration: 900ms;
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    animation-fill-mode: both;
+  }
+  .nc-mark .nc-mark-tl {
+    animation-name: nc-close-tl;
+  }
+  .nc-mark .nc-mark-tr {
+    animation-name: nc-close-tr;
+  }
+  .nc-mark .nc-mark-bl {
+    animation-name: nc-close-bl;
+  }
+  .nc-mark .nc-mark-br {
+    animation-name: nc-close-br;
+  }
+  .nc-mark .nc-mark-square {
+    animation-name: nc-square-in;
+    animation-delay: 250ms;
+    animation-duration: 600ms;
+  }
+
+  /* Biểu trưng bắt đầu to gấp đôi, nằm giữa logo (giữa cột), rồi thu nhỏ về chỗ của nó.
+     93.84% = khoảng từ tâm biểu trưng tới tâm cả logo, tính theo bề rộng biểu trưng
+     ((4167 - 1448.5) / 2897). */
+  .nc-mark {
+    transform-origin: center;
+    animation: nc-mark-settle 800ms cubic-bezier(0.65, 0, 0.35, 1) 1000ms both;
+  }
+
+  /* Chữ NETCAB: khung che mở dần từ trái sang phải, bắt đầu khi biểu trưng gần về chỗ */
+  .nc-bm-word {
+    animation: nc-wipe 800ms cubic-bezier(0.65, 0, 0.35, 1) 1650ms both;
+  }
+
+  .nc-bm-tag img {
+    animation: nc-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  .nc-bm-tag-1 img {
+    animation-delay: 2300ms;
+  }
+  .nc-bm-tag-2 img {
+    animation-delay: 2450ms;
+  }
+}
+
+@keyframes nc-mark-settle {
+  from {
+    transform: translateX(93.84%) scale(2);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* Đơn vị px ở đây là đơn vị trong viewBox của biểu trưng (rộng 2897) */
+@keyframes nc-close-tl {
+  from {
+    transform: translate(-300px, -300px);
+    opacity: 0;
+  }
+}
+@keyframes nc-close-tr {
+  from {
+    transform: translate(300px, -300px);
+    opacity: 0;
+  }
+}
+@keyframes nc-close-bl {
+  from {
+    transform: translate(-300px, 300px);
+    opacity: 0;
+  }
+}
+@keyframes nc-close-br {
+  from {
+    transform: translate(300px, 300px);
+    opacity: 0;
+  }
+}
+@keyframes nc-square-in {
+  from {
+    transform: scale(0.4) rotate(45deg);
+    opacity: 0;
+  }
+}
+@keyframes nc-wipe {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes nc-rise {
+  from {
+    transform: translateY(105%);
+    opacity: 0;
+  }
+}
+

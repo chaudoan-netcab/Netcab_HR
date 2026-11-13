@@ -85,21 +85,21 @@ export function ReminderDialog({
   const skippedUnit = dept ? "phòng" : "người";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4 sm:items-center" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div ref={box} role="dialog" aria-modal="true" aria-labelledby="reminder-title" className="flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3.5">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/10 p-4 backdrop-blur-xs sm:items-center dark:bg-black/50" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div ref={box} role="dialog" aria-modal="true" aria-labelledby="reminder-title" className="flex max-h-[90dvh] w-full max-w-2xl flex-col overflow-hidden rounded-[6px] border border-transparent bg-card shadow-xl dark:border-border dark:bg-popover">
+        <div className="flex items-start justify-between gap-3 border-b border-border p-5 max-md:p-4">
           <div>
-            <h2 id="reminder-title">{dept ? "Nhắc Trưởng phòng" : "Soạn nhắc việc"}</h2>
-            <p className="text-xs text-slate-500">
+            <h2 id="reminder-title" className="text-[17px] font-semibold leading-snug">{dept ? "Nhắc Trưởng phòng" : "Soạn nhắc việc"}</h2>
+            <p className="mt-0.5 text-[13px] text-muted-foreground">
               {subject} · Kênh: Microsoft Teams
             </p>
           </div>
-          <button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="Đóng">
-            <X size={18} />
+          <button type="button" onClick={onClose} className="-mr-2 -mt-1 flex size-9 shrink-0 items-center justify-center rounded-[4px] text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Đóng">
+            <X className="size-4.5" aria-hidden />
           </button>
         </div>
 
-        <div className="flex flex-col gap-4 overflow-y-auto px-5 py-4">
+        <div className="flex flex-col gap-4 overflow-y-auto p-5 max-md:p-4">
           <label>
             <span className="label">Mẫu nhắc</span>
             <select value={type} onChange={(e) => setType(e.target.value as ReminderType)} className="input">
@@ -112,14 +112,14 @@ export function ReminderDialog({
           </label>
 
           {dept && messages.length > 0 && (
-            <p className="rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-700">
+            <p className="rounded-[4px] bg-muted px-3 py-2 text-xs text-muted-foreground">
               Gửi cho {messages.length} Trưởng phòng. Các phòng cùng một Trưởng phòng được gộp vào một tin.
             </p>
           )}
 
           {built.skipped.length > 0 && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-              <div className="font-medium">
+            <div className="rounded-[4px] bg-muted px-3 py-2 text-xs text-foreground">
+              <div className="font-medium text-status-warning-text">
                 Không tạo tin cho {built.skipped.length} {skippedUnit}:
               </div>
               <ul className="mt-1 list-disc pl-4">
@@ -133,39 +133,39 @@ export function ReminderDialog({
           )}
 
           {messages.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-500">Không có tin nhắc nào phù hợp với mẫu này. Chọn mẫu khác.</p>
+            <p className="py-6 text-center text-[13px] text-muted-foreground">Không có tin nhắc nào phù hợp với mẫu này. Chọn mẫu khác.</p>
           ) : (
             <div className="flex flex-col gap-3">
-              <div className="text-xs font-medium text-slate-500">Xem trước và chỉnh sửa ({messages.length} tin)</div>
+              <div className="text-xs font-medium text-muted-foreground">Xem trước và chỉnh sửa ({messages.length} tin)</div>
               {messages.map((m, i) => (
-                <div key={m.recipientId} className="rounded-lg border border-slate-200">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2 text-xs">
+                <div key={m.recipientId} className="overflow-hidden rounded-[4px] border border-input dark:border-border">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border bg-muted px-3 py-2 text-xs">
                     <span>
-                      Gửi tới <b className="text-slate-800">{m.recipientName}</b>
+                      Gửi tới <b className="font-medium text-foreground">{m.recipientName}</b>
                       {dept && " (Trưởng phòng)"}
                     </span>
-                    {dept && <span className="text-slate-500">Về: {m.about.join(", ")}</span>}
+                    {dept && <span className="text-muted-foreground">Về: {m.about.join(", ")}</span>}
                   </div>
                   <textarea
                     aria-label={`Nội dung gửi ${m.recipientName}`}
                     value={m.body}
                     onChange={(e) => setMessages((all) => all.map((x, j) => (j === i ? { ...x, body: e.target.value } : x)))}
                     rows={Math.min(14, Math.max(6, m.body.split("\n").length + 1))}
-                    className="block w-full resize-y rounded-b-lg border-0 px-3 py-2 text-sm leading-relaxed text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                    className="block w-full resize-y border-0 bg-card px-3 py-2 text-base leading-relaxed text-foreground focus:outline-none focus:ring-1 focus:ring-inset focus:ring-primary md:text-sm dark:bg-popover"
                   />
                 </div>
               ))}
             </div>
           )}
           {error && (
-            <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            <p role="alert" className="text-xs text-status-danger-text">
               {error}
             </p>
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-3">
-          <button type="button" onClick={onClose} className="btn btn-ghost">
+        <div className="flex items-center justify-end gap-2 border-t border-border p-4 max-md:[&>button]:flex-1">
+          <button type="button" onClick={onClose} className="btn">
             Hủy
           </button>
           <button type="button" onClick={send} disabled={pending || messages.length === 0} className="btn btn-primary">

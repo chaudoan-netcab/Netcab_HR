@@ -52,26 +52,26 @@ export default async function KpiTemplatePage({ params, searchParams }: { params
       <div className="flex flex-col gap-4">
         {sections.map((sec) => (
           <Card key={sec} title={sec} pad={false}>
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-border">
               {t.items.filter((i) => i.section === sec).map((i) => (
-                <li key={i.id} className="px-5 py-3">
+                <li key={i.id} className="px-5 py-3 max-md:px-3">
                   <details>
-                    <summary className="flex cursor-pointer list-none items-start gap-3">
-                      <div className="flex-1">
-                        <div className="font-medium text-slate-800">{i.name}</div>
-                        <div className="text-xs text-slate-500">{i.measurement}</div>
+                    <summary className="flex cursor-pointer list-none flex-col gap-1 sm:flex-row sm:items-start sm:gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-foreground">{i.name}</div>
+                        <div className="text-xs text-muted-foreground">{i.measurement}</div>
                       </div>
-                      <div className="text-right text-xs text-slate-600">
-                        <div>Chỉ tiêu <b>{i.unit.trim() === "%" ? pct(i.target, 0) : `${i.target} ${i.unit}`}</b> · Tỉ trọng <b>{pct(i.weight, 0)}</b></div>
-                        <div className="text-slate-400">{kpiFormulaLabel[i.formula]}</div>
+                      <div className="text-xs text-muted-foreground sm:text-right">
+                        <div>Chỉ tiêu <b className="font-semibold tabular-nums text-foreground">{i.unit.trim() === "%" ? pct(i.target, 0) : `${i.target} ${i.unit}`}</b> · Tỉ trọng <b className="font-semibold tabular-nums text-foreground">{pct(i.weight, 0)}</b></div>
+                        <div>{kpiFormulaLabel[i.formula]}</div>
                       </div>
                     </summary>
-                    {i.note && <p className="mt-2 text-xs text-slate-500">Ghi chú: {i.note}</p>}
+                    {i.note && <p className="mt-2 text-xs text-muted-foreground">Ghi chú: {i.note}</p>}
                     {editable && (
                       <>
                         <ItemForm action={saveTemplateItem.bind(null, t.id, i.id)} item={i} sections={sections} />
                         <form action={deleteTemplateItem.bind(null, t.id, i.id)} className="mt-1">
-                          <button className="btn btn-ghost btn-sm text-red-600"><Trash2 size={12} /> Xóa chỉ số</button>
+                          <button className="btn btn-danger btn-sm"><Trash2 size={14} aria-hidden /> Xóa chỉ số</button>
                         </form>
                       </>
                     )}
@@ -94,7 +94,7 @@ export default async function KpiTemplatePage({ params, searchParams }: { params
 function ItemForm({ action, item, sections, nextOrder = 0 }: { action: (fd: FormData) => Promise<void>; item?: KpiTemplateItem; sections: string[]; nextOrder?: number }) {
   const listId = `sections-${item?.id ?? "new"}`;
   return (
-    <form action={action} className="mt-3 grid gap-3 rounded-lg bg-slate-50 p-3 sm:grid-cols-6">
+    <form action={action} className="mt-3 grid gap-3 rounded-[4px] bg-muted/50 p-3 sm:grid-cols-6">
       <Field label="Nhóm KRA" className="sm:col-span-3">
         <input name="section" list={listId} defaultValue={item?.section ?? sections[sections.length - 1] ?? ""} required className="input" />
         <datalist id={listId}>{sections.map((s) => <option key={s} value={s} />)}</datalist>

@@ -15,9 +15,9 @@ export function RemindButton({ row, quarterLabel, sender }: { row: TrackRow; qua
         <BellRing size={15} /> Nhắc
       </button>
       {toast && (
-        <div role="status" className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 shadow-lg">
-          <CheckCircle2 size={16} /> {toast}
-          <button type="button" onClick={() => setToast(null)} className="ml-2 text-xs underline">
+        <div role="status" className="fixed bottom-6 right-6 z-[60] flex max-w-[calc(100%-2rem)] items-center gap-2 rounded-[6px] border border-border bg-popover px-4 py-3 text-[13px] text-status-success-text shadow-lg max-sm:left-4 max-sm:right-4">
+          <CheckCircle2 size={16} className="shrink-0" aria-hidden /> {toast}
+          <button type="button" onClick={() => setToast(null)} className="ml-auto pl-2 text-xs text-muted-foreground underline hover:text-foreground">
             Đóng
           </button>
         </div>

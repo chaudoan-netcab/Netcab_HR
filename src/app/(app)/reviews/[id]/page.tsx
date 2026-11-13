@@ -11,6 +11,7 @@ import { REVIEW_TEMPLATES, WEIGHT_NOTE } from "@/lib/review-templates";
 import { Badge, Card, Field, Flash, PageHeader } from "@/components/ui";
 import { PrintButton } from "@/components/print-button";
 import { ReviewScoreTable } from "@/app/(app)/reviews/_components/review-score-table";
+import { gradeWarnClass } from "@/app/(app)/kpi/_components/mobile-card";
 import { saveReview } from "../actions";
 
 const STEPS: { key: ReviewStatus; label: string }[] = [
@@ -80,10 +81,16 @@ export default async function ReviewPage({ params, searchParams }: { params: Pro
       <Flash ok={sp.ok} err={sp.err} />
 
       {/* Thanh tiến trình các bước (giống Workday) */}
-      <ol className="no-print mb-5 grid grid-cols-5 gap-2">
+      <ol className="no-print card mb-5 grid gap-x-4 gap-y-2 px-5 py-3 text-xs max-md:px-3 sm:grid-cols-5" aria-label="Các bước của phiếu">
         {STEPS.map((s, i) => (
-          <li key={s.key} className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${i === idx ? "border-brand-500 bg-brand-50 font-semibold text-brand-700" : i < idx ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-slate-200 text-slate-500"}`}>
-            {i < idx ? <CheckCircle2 size={15} /> : i === idx ? <CircleDot size={15} /> : <Circle size={15} />}
+          <li key={s.key} aria-current={i === idx ? "step" : undefined} className={`flex items-center gap-2 ${i === idx ? "font-semibold text-primary-text" : i < idx ? "text-foreground" : "text-muted-foreground"}`}>
+            {i < idx ? (
+              <CheckCircle2 size={15} className="shrink-0 text-status-success-text" aria-hidden />
+            ) : i === idx ? (
+              <CircleDot size={15} className="shrink-0" aria-hidden />
+            ) : (
+              <Circle size={15} className="shrink-0" aria-hidden />
+            )}
             {s.label}
           </li>
         ))}
@@ -91,9 +98,10 @@ export default async function ReviewPage({ params, searchParams }: { params: Pro
 
       {!open && <Flash err="Kỳ đánh giá đã đóng. Phiếu ở chế độ chỉ xem." />}
       {open && myTurn && st !== "COMPLETED" && (
-        <div className="mb-4 rounded-lg border border-brand-200 bg-brand-50 px-4 py-2.5 text-sm text-brand-800">
+        <div className="card mb-4 flex flex-wrap items-center gap-x-1 px-4 py-2.5 text-sm text-foreground max-md:px-3">
+          <span className="mr-1 size-2 rounded-full bg-status-warning" aria-hidden />
           {hr && !(isEmployee || me === r.reviewerId || me === r.hodId) ? "Đang thao tác với quyền HRM. " : "Bước cần xử lý: "}
-          <b>{reviewStatusLabel[st]}</b>
+          <b className="font-medium text-status-warning-text">{reviewStatusLabel[st]}</b>
           {r.cycle.dueDate && ` · hạn ${fmtDate(r.cycle.dueDate)}`}
         </div>
       )}
@@ -114,12 +122,11 @@ export default async function ReviewPage({ params, searchParams }: { params: Pro
 
         {kpis.length > 0 && (
           <Card title={`Tham khảo: kết quả KPI năm ${year}`}>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
               {kpis.map((k) => (
-                <Link key={k.id} href={`/kpi/${k.id}`} className="no-underline hover:no-underline">
-                  <Badge tone={kpiGradeTone(k.grade)}>
-                    {periodLabel(k.periodType, k.period, k.year)}: {pct(k.score)}
-                  </Badge>
+                <Link key={k.id} href={`/kpi/${k.id}`} className="text-foreground no-underline hover:underline">
+                  <span className="text-muted-foreground">{periodLabel(k.periodType, k.period, k.year)}:</span>{" "}
+                  <span className={`font-medium tabular-nums ${gradeWarnClass(kpiGradeTone(k.grade))}`}>{pct(k.score)}</span>
                 </Link>
               ))}
             </div>
@@ -127,17 +134,15 @@ export default async function ReviewPage({ params, searchParams }: { params: Pro
         )}
 
         <Card title="Phần A: Thành tích cơ bản & cử chỉ hành vi" pad={false}>
-          <div className="p-5">
-            <p className="mb-3 text-xs text-slate-500">
-              Thang điểm: 0 Không đạt · 1–4 Ít đạt · 5 Đạt yêu cầu · 6–9 Đạt hoàn toàn · 10 Xuất sắc. Tỷ trọng: {WEIGHT_NOTE[r.template]}
-            </p>
-            <ReviewScoreTable template={r.template} self={selfScores} manager={mgrScores} editable={editing} showManager={showManager} bonus={r.bonus} bonusEditable={mgrEdit} />
-          </div>
+          <p className="px-5 pb-3 text-xs text-muted-foreground max-md:px-3">
+            Thang điểm: 0 Không đạt · 1–4 Ít đạt · 5 Đạt yêu cầu · 6–9 Đạt hoàn toàn · 10 Xuất sắc. Tỷ trọng: {WEIGHT_NOTE[r.template]}
+          </p>
+          <ReviewScoreTable template={r.template} self={selfScores} manager={mgrScores} editable={editing} showManager={showManager} bonus={r.bonus} bonusEditable={mgrEdit} />
         </Card>
 
         <div className="grid gap-5 lg:grid-cols-2">
           <Card title="Phần B: Đóng góp & cải tiến">
-            <p className="mb-2 text-xs text-slate-500">Thành tích xuất sắc phải được giải thích tại phần này. Điểm cộng 1/3/5 do người đánh giá chọn ở Phần A.</p>
+            <p className="mb-2 text-xs text-muted-foreground">Thành tích xuất sắc phải được giải thích tại phần này. Điểm cộng 1/3/5 do người đánh giá chọn ở Phần A.</p>
             {(st === "SELF_REVIEW" && myTurn) || mgrEdit ? (
               <textarea name="contributions" defaultValue={r.contributions ?? ""} className="input" />
             ) : (
@@ -145,7 +150,7 @@ export default async function ReviewPage({ params, searchParams }: { params: Pro
             )}
           </Card>
           <Card title="Phần C: Thiếu sót cần cải tiến">
-            <p className="mb-2 text-xs text-slate-500">Thành tích chưa đạt phải được giải thích tại phần này.</p>
+            <p className="mb-2 text-xs text-muted-foreground">Thành tích chưa đạt phải được giải thích tại phần này.</p>
             {mgrEdit ? <textarea name="shortcomings" defaultValue={r.shortcomings ?? ""} className="input" /> : <Text v={showManager ? r.shortcomings : null} />}
           </Card>
         </div>
@@ -169,8 +174,8 @@ export default async function ReviewPage({ params, searchParams }: { params: Pro
                   <input name="contractNote" defaultValue={r.contractNote ?? ""} placeholder="Ghi chú đề nghị khác…" className="input" />
                 </div>
               ) : (
-                <div className="text-sm">
-                  <b>{r.contractRecommendation ? contractRecLabel[r.contractRecommendation] : "—"}</b> {r.contractNote && <span className="text-slate-600">· {r.contractNote}</span>}
+                <div className="text-sm text-foreground">
+                  <b className="font-medium">{r.contractRecommendation ? contractRecLabel[r.contractRecommendation] : "—"}</b> {r.contractNote && <span className="text-muted-foreground">· {r.contractNote}</span>}
                 </div>
               )}
             </Card>
@@ -184,8 +189,8 @@ export default async function ReviewPage({ params, searchParams }: { params: Pro
                   <input name="devPlanReason" defaultValue={r.devPlanReason ?? ""} placeholder="Lý do…" className="input" />
                 </div>
               ) : (
-                <div className="text-sm">
-                  <b>{r.devPlan === null ? "—" : r.devPlan ? "Có" : "Không"}</b> {r.devPlanReason && <span className="text-slate-600">· {r.devPlanReason}</span>}
+                <div className="text-sm text-foreground">
+                  <b className="font-medium">{r.devPlan === null ? "—" : r.devPlan ? "Có" : "Không"}</b> {r.devPlanReason && <span className="text-muted-foreground">· {r.devPlanReason}</span>}
                 </div>
               )}
             </Card>
@@ -210,7 +215,7 @@ export default async function ReviewPage({ params, searchParams }: { params: Pro
         )}
 
         <Card title="Chữ ký điện tử">
-          <div className="grid gap-4 text-sm sm:grid-cols-4">
+          <div className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <Sign label="Nhân viên tự đánh giá" at={r.selfSubmittedAt} who={r.employee.fullName} />
             <Sign label="Người đánh giá" at={r.managerSubmittedAt} who={r.reviewer?.fullName} />
             <Sign label="Nhân viên xác nhận" at={r.employeeAckAt} who={r.employee.fullName} />
@@ -237,22 +242,25 @@ export default async function ReviewPage({ params, searchParams }: { params: Pro
 function Info({ k, v }: { k: string; v: React.ReactNode }) {
   return (
     <div>
-      <div className="text-xs text-slate-500">{k}</div>
-      <div className="font-medium text-slate-800">{v || "—"}</div>
+      <div className="text-xs text-muted-foreground">{k}</div>
+      <div className="mt-1 font-medium text-foreground">{v || "—"}</div>
     </div>
   );
 }
 
 function Text({ v }: { v: string | null | undefined }) {
-  return v ? <p className="whitespace-pre-line text-sm text-slate-700">{v}</p> : <p className="text-sm text-slate-400">Chưa có nội dung</p>;
+  return v ? <p className="whitespace-pre-line text-sm text-foreground">{v}</p> : <p className="text-sm text-muted-foreground">Chưa có nội dung</p>;
 }
 
 function Sign({ label, at, who }: { label: string; at: Date | null; who?: string | null }) {
   return (
-    <div className={`rounded-lg border p-3 ${at ? "border-emerald-200 bg-emerald-50/50" : "border-dashed border-slate-300"}`}>
-      <div className="text-xs text-slate-500">{label}</div>
-      <div className="font-medium">{at ? who ?? "—" : "Chưa ký"}</div>
-      {at && <div className="text-xs text-slate-500">{fmtDateTime(at)}</div>}
+    <div className="flex items-start gap-2 rounded-[4px] bg-muted/50 p-3">
+      {at ? <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-status-success-text" aria-hidden /> : <Circle size={16} className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden />}
+      <div className="min-w-0">
+        <div className="text-xs text-muted-foreground">{label}</div>
+        <div className={`font-medium ${at ? "text-foreground" : "text-muted-foreground"}`}>{at ? who ?? "—" : "Chưa ký"}</div>
+        {at && <div className="text-xs tabular-nums text-muted-foreground">{fmtDateTime(at)}</div>}
+      </div>
     </div>
   );
 }

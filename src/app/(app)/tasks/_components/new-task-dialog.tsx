@@ -1,6 +1,7 @@
 "use client";
 // Hộp thoại "Giao việc" — mở khi URL có ?new=1 (giữ nguyên các đường dẫn cũ /tasks?new=1&assignee=…).
 import { useRouter } from "next/navigation";
+import { CircleAlert } from "lucide-react";
 import { Modal, SubmitButton } from "@/components/modal";
 import { DescriptionField, DueField, PeopleFields, PriorityField, TitleField, type PersonOption } from "./task-fields";
 
@@ -38,7 +39,12 @@ export function NewTaskDialog({
       }
     >
       <div className="flex flex-col gap-4">
-        {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+        {error && (
+          <p role="alert" className="flex items-start gap-1.5 text-xs text-status-danger-text">
+            <CircleAlert size={14} className="mt-px shrink-0" aria-hidden />
+            {error}
+          </p>
+        )}
         <TitleField />
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-4">

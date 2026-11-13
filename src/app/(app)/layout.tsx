@@ -9,6 +9,9 @@ import { destroySession, requireUser } from "@/lib/server/auth";
 import { capsOf, roleName } from "@/lib/server/access";
 import { getTodos } from "@/lib/server/todos";
 import { SIDEBAR_COOKIE } from "@/lib/nav";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { RestoreHidden } from "./_components/restore-hidden";
+import { HIDDEN_COOKIE } from "./_components/dismiss-key";
 
 async function logout() {
   "use server";
@@ -34,18 +37,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       initialCollapsed={jar.get(SIDEBAR_COOKIE)?.value === "collapsed"}
       topbarRight={
         <>
+          {/* Con mắt: chỉ hiện khi có banner trang Tổng quan đã bấm ✕ */}
+          {!!jar.get(HIDDEN_COOKIE)?.value && <RestoreHidden />}
+          <ThemeToggle />
           <TodoInbox todos={todos} />
-          <div className="hidden h-6 w-px bg-slate-200 sm:block" aria-hidden />
-          <Link href={profileHref} className="flex items-center gap-2.5 rounded-lg px-1.5 py-1 no-underline hover:bg-slate-100 hover:no-underline" title="Hồ sơ cá nhân">
+          <div className="hidden h-6 w-px bg-border sm:block" aria-hidden />
+          <Link href={profileHref} className="flex items-center gap-2.5 rounded-[4px] px-1.5 py-1 no-underline hover:bg-muted hover:no-underline" title="Hồ sơ cá nhân">
             <Avatar name={name} size={32} />
             <span className="hidden text-left leading-tight md:block">
-              <span className="block max-w-40 truncate text-sm font-medium text-slate-800">{name}</span>
-              <span className="block text-[11px] text-slate-500">{roleName(user)}</span>
+              <span className="block max-w-40 truncate text-[13px] font-medium text-foreground">{name}</span>
+              <span className="block text-xs text-muted-foreground">{roleName(user)}</span>
             </span>
           </Link>
           <form action={logout}>
-            <button className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600" title="Đăng xuất" aria-label="Đăng xuất">
-              <LogOut size={17} />
+            <button className="flex size-9 items-center justify-center rounded-[4px] text-muted-foreground hover:bg-muted hover:text-foreground" title="Đăng xuất" aria-label="Đăng xuất">
+              <LogOut className="size-4.5" />
             </button>
           </form>
         </>

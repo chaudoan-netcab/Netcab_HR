@@ -1,7 +1,8 @@
 import type { Department, Employee } from "@prisma/client";
 import { toInputDate } from "@/lib/dates";
 import { employeeStatusLabel, employeeTypeLabel, jobLevelLabel } from "@/lib/labels";
-import { Card, Field } from "@/components/ui";
+import type { ReactNode } from "react";
+import { Card } from "@/components/ui";
 import { DateInput } from "@/components/date-input";
 
 type Props = {
@@ -11,6 +12,21 @@ type Props = {
   people: Pick<Employee, "id" | "fullName" | "code">[];
   submitLabel: string;
 };
+
+/** Ô có nhãn trên (như Field ở ui.tsx), dấu * của trường bắt buộc tô màu đỏ */
+function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  const required = label.endsWith(" *");
+  return (
+    <label className="block min-w-0">
+      <span className="label">
+        {required ? label.slice(0, -2) : label}
+        {required && <span className="text-status-danger-text"> *</span>}
+      </span>
+      {children}
+      {hint && <span className="mt-1.5 block text-xs text-muted-foreground">{hint}</span>}
+    </label>
+  );
+}
 
 export function EmployeeForm({ action, employee: e, departments, people, submitLabel }: Props) {
   const T = (name: keyof Employee, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
@@ -25,7 +41,7 @@ export function EmployeeForm({ action, employee: e, departments, people, submitL
   );
   const others = people.filter((p) => p.id !== e?.id);
   return (
-    <form action={action} className="flex flex-col gap-5">
+    <form action={action} className="flex flex-col gap-4 sm:gap-5">
       <Card title="Thông tin nhân viên">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {T("code", "Mã nhân viên (MSNV) *", { required: true, placeholder: "VD: NC013" })}

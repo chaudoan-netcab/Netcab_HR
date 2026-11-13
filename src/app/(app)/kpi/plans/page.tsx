@@ -11,7 +11,8 @@ import { kpiGradeTone, periodLabel, pct } from "@/lib/kpi";
 import { kpiStatusLabel, kpiStatusView } from "@/lib/labels";
 import { Badge, Card, EmptyState, Flash, PageHeader, StatusChips, Tabs } from "@/components/ui";
 import { AssignKpiDialog } from "../_components/kpi-dialogs";
-import { YearKpiCells, YearKpiHead } from "../_components/year-kpi";
+import { YearKpiCells, YearKpiHead, YearKpiMobile } from "../_components/year-kpi";
+import { FLAT_ON_MOBILE, GradeText, MobileCard, MobileField, MobileList, STICKY_COL, TABLE_MD } from "../_components/mobile-card";
 import { createPlan } from "../actions";
 
 type SP = { view?: string; status?: string; employee?: string; year?: string; ok?: string; err?: string };
@@ -73,7 +74,7 @@ export default async function KpiPlansPage({ searchParams }: { searchParams: Pro
       <Flash ok={sp.ok} err={sp.err} />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 text-sm" role="tablist" aria-label="Cách xem">
+        <div className="inline-flex rounded-[4px] bg-card p-0.5 text-[13px] dark:border dark:border-border" role="tablist" aria-label="Cách xem">
           {[
             { key: "", label: "Theo phiếu" },
             { key: "year", label: "Tổng hợp năm" },
@@ -83,7 +84,7 @@ export default async function KpiPlansPage({ searchParams }: { searchParams: Pro
               href={qs({ view: v.key || undefined, status: undefined })}
               role="tab"
               aria-selected={(sp.view ?? "") === v.key}
-              className={`rounded-md px-3 py-1.5 font-medium hover:no-underline ${(sp.view ?? "") === v.key ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-slate-100"}`}
+              className={`whitespace-nowrap rounded-[4px] px-3 py-1.5 font-medium no-underline hover:no-underline ${(sp.view ?? "") === v.key ? "bg-primary/10 text-primary-text" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
             >
               {v.label}
             </Link>
@@ -93,7 +94,7 @@ export default async function KpiPlansPage({ searchParams }: { searchParams: Pro
           <Link href={qs({ year: String(year - 1) })} className="btn btn-sm" aria-label="Năm trước">
             <ChevronLeft size={15} />
           </Link>
-          <span className="w-20 text-center font-semibold tabular-nums">Năm {year}</span>
+          <span className="w-20 text-center font-medium tabular-nums text-foreground">Năm {year}</span>
           <Link href={qs({ year: String(year + 1) })} className="btn btn-sm" aria-label="Năm sau">
             <ChevronRight size={15} />
           </Link>
@@ -105,8 +106,8 @@ export default async function KpiPlansPage({ searchParams }: { searchParams: Pro
       ) : (
         <>
           {sp.employee && (
-            <div className="mb-3 flex items-center gap-2 text-sm">
-              <span className="text-slate-500">Đang xem phiếu của</span>
+            <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Đang xem phiếu của</span>
               <span className="font-medium">{all[0]?.employee.fullName ?? "nhân viên đã chọn"}</span>
               <Link href={qs({ employee: undefined })} className="btn btn-sm">Bỏ lọc</Link>
             </div>
@@ -123,40 +124,62 @@ export default async function KpiPlansPage({ searchParams }: { searchParams: Pro
               })),
             ]}
           />
-          <Card pad={false}>
+          <Card pad={false} className={plans.length ? FLAT_ON_MOBILE : ""}>
             {plans.length === 0 ? (
               <EmptyState title="Chưa có phiếu KPI nào" hint={canAssign ? "Bấm “Giao KPI” để tạo phiếu cho nhân viên." : undefined} />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Nhân viên</th>
-                      <th>Kỳ</th>
-                      <th className="text-right">Kết quả</th>
-                      <th>Xếp loại</th>
-                      <th>Trạng thái</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {plans.map((p) => {
-                      const st = kpiStatusView(p.status, locked.has(p.id));
-                      return (
-                        <tr key={p.id}>
-                          <td>
-                            <Link href={`/kpi/${p.id}`} className="font-medium">{p.employee.fullName}</Link>
-                            <div className="text-xs text-slate-500">{p.title.replace("BẢNG KPI — ", "")}</div>
-                          </td>
-                          <td className="whitespace-nowrap">{periodLabel(p.periodType, p.period, p.year)}</td>
-                          <td className="text-right tabular-nums">{pct(p.score)}</td>
-                          <td>{p.grade && p.status !== "DRAFT" && <Badge tone={kpiGradeTone(p.grade)}>{p.grade}</Badge>}</td>
-                          <td><Badge tone={st.tone}>{st.label}</Badge></td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <>
+                <div className={`overflow-x-auto ${TABLE_MD}`}>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Nhân viên</th>
+                        <th>Kỳ</th>
+                        <th className="text-right">Kết quả</th>
+                        <th>Xếp loại</th>
+                        <th>Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {plans.map((p) => {
+                        const st = kpiStatusView(p.status, locked.has(p.id));
+                        return (
+                          <tr key={p.id}>
+                            <td>
+                              <Link href={`/kpi/${p.id}`} className="font-medium">{p.employee.fullName}</Link>
+                              <div className="text-xs text-muted-foreground">{p.title.replace("BẢNG KPI — ", "")}</div>
+                            </td>
+                            <td className="whitespace-nowrap">{periodLabel(p.periodType, p.period, p.year)}</td>
+                            <td className="whitespace-nowrap text-right tabular-nums">{pct(p.score)}</td>
+                            <td>{p.grade && p.status !== "DRAFT" && <GradeText tone={kpiGradeTone(p.grade)}>{p.grade}</GradeText>}</td>
+                            <td><Badge tone={st.tone}>{st.label}</Badge></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <MobileList>
+                  {plans.map((p) => {
+                    const st = kpiStatusView(p.status, locked.has(p.id));
+                    return (
+                      <MobileCard
+                        key={p.id}
+                        meta={periodLabel(p.periodType, p.period, p.year)}
+                        status={<Badge tone={st.tone}>{st.label}</Badge>}
+                        title={p.employee.fullName}
+                        href={`/kpi/${p.id}`}
+                      >
+                        <MobileField label="Bảng KPI">{p.title.replace("BẢNG KPI — ", "")}</MobileField>
+                        <MobileField label="Kết quả"><span className="tabular-nums">{pct(p.score)}</span></MobileField>
+                        {p.grade && p.status !== "DRAFT" && (
+                          <MobileField label="Xếp loại"><GradeText tone={kpiGradeTone(p.grade)}>{p.grade}</GradeText></MobileField>
+                        )}
+                      </MobileCard>
+                    );
+                  })}
+                </MobileList>
+              </>
             )}
           </Card>
         </>
@@ -184,21 +207,21 @@ async function YearTable({ scope, year, currentQuarter, canAssign }: { scope: Pr
       {groups
         .filter((g) => g.rows.length)
         .map((g) => (
-          <Card key={g.key} pad={false} title={`${g.label} (${g.rows.length})`} actions={<span className="text-xs text-slate-500">{g.hint}</span>}>
-            <div className="overflow-x-auto">
+          <Card key={g.key} pad={false} className={FLAT_ON_MOBILE} title={`${g.label} (${g.rows.length})`} actions={<span className="text-xs text-muted-foreground">{g.hint}</span>}>
+            <div className={`overflow-x-auto ${TABLE_MD}`}>
               <table className="table min-w-[760px]">
                 <thead>
                   <tr>
-                    <th>Họ tên</th>
+                    <th className={STICKY_COL}>Họ tên</th>
                     <YearKpiHead year={year} />
                   </tr>
                 </thead>
                 <tbody>
                   {g.rows.map((p) => (
                     <tr key={p.id}>
-                      <td>
+                      <td className={STICKY_COL}>
                         <Link href={`/kpi/plans?employee=${p.id}&year=${year}`} className="font-medium">{p.fullName}</Link>
-                        <div className="text-xs text-slate-500">{[p.position, p.department?.name].filter(Boolean).join(" · ")}</div>
+                        <div className="text-xs text-muted-foreground">{[p.position, p.department?.name].filter(Boolean).join(" · ")}</div>
                       </td>
                       <YearKpiCells y={kpi.get(p.id)!} currentQuarter={currentQuarter} />
                     </tr>
@@ -206,9 +229,16 @@ async function YearTable({ scope, year, currentQuarter, canAssign }: { scope: Pr
                 </tbody>
               </table>
             </div>
+            <MobileList>
+              {g.rows.map((p) => (
+                <MobileCard key={p.id} meta={[p.position, p.department?.name].filter(Boolean).join(" · ")} title={p.fullName} href={`/kpi/plans?employee=${p.id}&year=${year}`}>
+                  <YearKpiMobile y={kpi.get(p.id)!} year={year} currentQuarter={currentQuarter} />
+                </MobileCard>
+              ))}
+            </MobileList>
           </Card>
         ))}
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-muted-foreground">
         KPI năm = trung bình điểm các quý đã được quản lý xác nhận trong năm {year}. Quý đang cập nhật hoặc chờ xác nhận chưa được tính.
         {canAssign && " Bấm vào tên để xem các phiếu của người đó."}
       </p>

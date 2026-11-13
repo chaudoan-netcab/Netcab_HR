@@ -56,13 +56,13 @@ export function ReportDialog({
     >
       <div className="flex flex-col gap-4">
         {returnReason && (
-          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-            <span className="font-medium">Lý do trả lại:</span> {returnReason}
-          </div>
+          <p className="whitespace-pre-line text-[13px] text-foreground">
+            <span className="font-medium text-status-danger-text">Lý do trả lại:</span> {returnReason}
+          </p>
         )}
         <label className="block">
           <span className="label">
-            Kết quả thực hiện <span className="text-red-600">*</span>
+            Kết quả thực hiện <span className="text-status-danger-text">*</span>
           </span>
           <textarea
             name="note"
@@ -91,32 +91,32 @@ export function ReportDialog({
             onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), picker.current?.click())}
             role="button"
             tabIndex={0}
-            className={`flex cursor-pointer flex-col items-center gap-1 rounded-lg border-2 border-dashed px-4 py-5 text-center transition ${
-              drag ? "border-brand-500 bg-brand-50" : "border-slate-200 bg-slate-50/60 hover:border-brand-200 hover:bg-brand-50/40"
+            className={`flex cursor-pointer flex-col items-center gap-1 rounded-[4px] border border-dashed px-4 py-5 text-center transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary ${
+              drag ? "border-primary bg-primary/5" : "border-input bg-muted/50 hover:border-primary/60 dark:border-foreground/20 dark:bg-card"
             }`}
           >
-            <UploadCloud size={22} className={drag ? "text-brand-600" : "text-slate-400"} aria-hidden />
-            <div className="text-sm text-slate-700">
-              Kéo thả file vào đây hoặc <span className="font-medium text-brand-600">chọn file</span>
+            <UploadCloud size={20} className={drag ? "text-primary-text" : "text-muted-foreground"} aria-hidden />
+            <div className="text-[13px] text-foreground">
+              Kéo thả file vào đây hoặc <span className="font-medium text-primary-text">chọn file</span>
             </div>
-            <div className="text-xs text-slate-400">Tối đa {MAX_FILES} file · ảnh, PDF, Word, Excel</div>
+            <div className="text-xs text-muted-foreground">Tối đa {MAX_FILES} file · ảnh, PDF, Word, Excel</div>
           </div>
           {/* Không có name → không gửi file lên server (xem TODO đầu file) */}
           <input ref={picker} type="file" multiple className="hidden" onChange={(e) => (add(e.target.files), (e.target.value = ""))} />
 
           {files.length > 0 && (
-            <ul className="mt-2 flex flex-col divide-y divide-slate-100 rounded-lg border border-slate-200">
+            <ul className="mt-2 flex flex-col divide-y divide-border rounded-[4px] border border-border">
               {files.map((f, i) => (
-                <li key={`${f.name}:${f.size}`} className="flex items-center gap-2.5 px-3 py-2 text-sm">
-                  <FileText size={16} className="shrink-0 text-slate-400" aria-hidden />
-                  <span className="min-w-0 flex-1 break-all text-slate-700">
+                <li key={`${f.name}:${f.size}`} className="flex items-center gap-2.5 px-3 py-2 text-[13px]">
+                  <FileText size={16} className="shrink-0 text-muted-foreground" aria-hidden />
+                  <span className="min-w-0 flex-1 break-all text-foreground">
                     {f.name}
                   </span>
-                  <span className="shrink-0 text-xs tabular-nums text-slate-400">{fmtSize(f.size)}</span>
+                  <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{fmtSize(f.size)}</span>
                   <button
                     type="button"
                     onClick={() => setFiles((cur) => cur.filter((_, j) => j !== i))}
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-red-50 hover:text-red-600"
+                    className="flex size-7 shrink-0 items-center justify-center rounded-[4px] text-muted-foreground hover:bg-destructive/10 hover:text-status-danger-text"
                     aria-label={`Bỏ file ${f.name}`}
                   >
                     <X size={15} />
@@ -126,7 +126,7 @@ export function ReportDialog({
             </ul>
           )}
           {files.length > 0 && (
-            <p className="mt-2 flex items-start gap-1.5 text-xs text-amber-700">
+            <p className="mt-2 flex items-start gap-1.5 text-xs text-status-warning-text">
               <Paperclip size={13} className="mt-0.5 shrink-0" aria-hidden />
               Bản thử nghiệm: hệ thống chưa lưu file đính kèm, chỉ gửi phần nội dung. Vui lòng ghi đường dẫn tài liệu vào ô kết quả.
             </p>

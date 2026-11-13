@@ -25,3 +25,5 @@ export function reviewTabs(c: Caps): Tab[] {
 
 /** Cookie lưu trạng thái thu gọn sidebar ("collapsed" | "open") */
 export const SIDEBAR_COOKIE = "sidebar";
+
+// Chế độ sáng/tối: localStorage "netcab-theme-mode", đặt bởi script trong app/layout.tsx (không dùng cookie nữa).

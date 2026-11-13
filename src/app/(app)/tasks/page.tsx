@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, CalendarClock, ClipboardList, Flag, Plus, Search, Users, X } from "lucide-react";
+import { ArrowRight, Plus, Search, X } from "lucide-react";
 import type { Prisma, TaskStatus } from "@prisma/client";
 import { db } from "@/lib/server/db";
 import { isHRM, isManager, requireEmployeeUser, teamScope } from "@/lib/server/access";
 import { toInputDate, today } from "@/lib/dates";
 import { OPEN_TASK, assignableScope, taskRoles } from "@/lib/server/tasks";
 import { RETURN_PREFIX, SUBMIT_PREFIX, dueChip, isReturned, nextStep, viewStatusLabel, viewStatusTone, type ViewStatus } from "@/lib/task-view";
-import { Avatar, Badge, Card, Flash, PageHeader, StatusChips, Tabs } from "@/components/ui";
+import { Avatar, Badge, Card, EmptyState, Flash, PageHeader, StatusChips, Tabs } from "@/components/ui";
 import { createTask } from "./actions";
 import { NewTaskDialog } from "./_components/new-task-dialog";
 
@@ -102,7 +102,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
           href: `/tasks?view=${k}`,
           label: (
             <>
-              {v.label} {openIn[k] > 0 && <span className="ml-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] tabular-nums text-slate-600">{openIn[k]}</span>}
+              {v.label} {openIn[k] > 0 && <span className="ml-1 text-[10px] font-medium tabular-nums text-muted-foreground">{openIn[k]}</span>}
             </>
           ),
         }))}
@@ -114,10 +114,10 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
         <form action="/tasks" className="no-print relative w-full md:w-72">
           <input type="hidden" name="view" value={view} />
           <input type="hidden" name="show" value={show} />
-          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden />
+          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <input name="q" defaultValue={q} placeholder="Tìm theo tên nhiệm vụ" aria-label="Tìm theo tên nhiệm vụ" className="input pl-9 pr-9" />
           {q && (
-            <Link href={`/tasks?view=${view}&show=${show}`} className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Xóa tìm kiếm">
+            <Link href={`/tasks?view=${view}&show=${show}`} className="absolute right-0.5 top-1/2 flex size-7.5 -translate-y-1/2 items-center justify-center rounded-[4px] text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Xóa tìm kiếm">
               <X size={15} />
             </Link>
           )}
@@ -125,54 +125,51 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
       </div>
 
       {mineToDo > 0 && (
-        <p className="mb-3 flex items-center gap-2 text-sm text-slate-600">
-          <span className="h-4 w-1 rounded-full bg-brand-500" aria-hidden />
+        <p className="mb-3 flex items-center gap-2 text-[13px] text-muted-foreground">
+          <span className="h-4 w-[3px] shrink-0 rounded-full bg-primary" aria-hidden />
           <span>
-            <b className="font-semibold text-brand-700">{mineToDo} việc</b> đang chờ bạn xử lý — được đánh dấu bằng vạch xanh bên trái.
+            <b className="font-medium text-foreground">{mineToDo} việc</b> đang chờ bạn xử lý — được đánh dấu bằng vạch xanh bên trái.
           </span>
         </p>
       )}
 
-      <Card pad={false}>
+      {/* Điện thoại: thẻ nằm thẳng trên nền trang, bỏ nền/khung của khối bao */}
+      <Card pad={false} className="max-md:border-transparent max-md:bg-transparent max-md:dark:border-transparent">
         {rows.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-              <ClipboardList size={22} aria-hidden />
-            </span>
-            <div className="mt-1 text-sm font-medium text-slate-700">
-              {q ? `Không tìm thấy nhiệm vụ nào có “${q}”` : show === "open" ? "Không có nhiệm vụ nào đang mở" : "Không có nhiệm vụ nào trong mục này"}
-            </div>
-            <div className="max-w-md text-sm text-slate-500">
-              {q ? "Thử từ khóa khác hoặc xem ở mục trạng thái khác." : view === "mine" ? "Chưa có nhiệm vụ được giao." : canAssign ? "Tạo nhiệm vụ mới bằng nút “Giao việc”." : ""}
-            </div>
-          </div>
+          <EmptyState
+            title={q ? `Không tìm thấy nhiệm vụ nào có “${q}”` : show === "open" ? "Không có nhiệm vụ nào đang mở" : "Không có nhiệm vụ nào trong mục này"}
+            hint={(q ? "Thử từ khóa khác hoặc xem ở mục trạng thái khác." : view === "mine" ? "Chưa có nhiệm vụ được giao." : canAssign ? "Tạo nhiệm vụ mới bằng nút “Giao việc”." : "") || undefined}
+          />
         ) : (
           <>
-            {/* Màn hình rộng: bảng, bấm vào bất kỳ đâu trên dòng để mở */}
+            {/* Máy tính: bảng, bấm vào bất kỳ đâu trên dòng để mở. Dưới 1280px cột người gộp vào dòng phụ của cột nhiệm vụ */}
             <div className="hidden overflow-x-auto md:block">
               <table className="table">
                 <thead>
                   <tr>
                     <th>Nhiệm vụ</th>
-                    <th className="w-56">{personCol}</th>
-                    <th className="w-40">Hạn</th>
-                    <th className="w-48">Tiến độ</th>
+                    <th className="hidden w-56 xl:table-cell">{personCol}</th>
+                    <th className="w-36">Hạn</th>
+                    <th className="w-44">Tiến độ</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map(({ t, giverNote, person, status, returned, due, next }) => (
-                    <tr key={t.id} className={`relative cursor-pointer ${next ? "[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-brand-500)]" : ""}`}>
+                    <tr key={t.id} className={`relative cursor-pointer ${next ? "[&>td:first-child]:shadow-[inset_3px_0_0_var(--color-primary)]" : ""}`}>
                       <td>
-                        <Link href={`/tasks/${t.id}`} className="font-medium text-slate-900 after:absolute after:inset-0 hover:text-brand-600">
+                        <Link href={`/tasks/${t.id}`} className="font-medium text-foreground no-underline after:absolute after:inset-0 hover:text-primary-text">
                           {t.title}
                         </Link>
+                        <div className="mt-0.5 text-xs text-muted-foreground xl:hidden">
+                          {personCol}: <span className="text-foreground">{person.name}</span>
+                        </div>
                         <Meta high={t.priority === "HIGH"} giverNote={giverNote} collab={t._count.collaborators} />
                       </td>
-                      <td>
+                      <td className="hidden xl:table-cell">
                         <PersonCell {...person} />
                       </td>
-                      <td>
-                        <div className="tabular-nums text-slate-800">{due.date}</div>
+                      <td className="whitespace-nowrap">
+                        <div className="tabular-nums text-foreground">{due.date}</div>
                         {due.note && <div className={`text-xs font-medium ${dueText[due.tone]}`}>{cap(due.note)}</div>}
                       </td>
                       <td>
@@ -186,29 +183,37 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
               </table>
             </div>
 
-            {/* Điện thoại: thẻ */}
-            <ul className="divide-y divide-slate-100 md:hidden">
+            {/* Điện thoại: danh sách thẻ */}
+            <ul className="space-y-3 md:hidden">
               {rows.map(({ t, giverNote, person, status, returned, due, next }) => (
-                <li key={t.id} className={next ? "shadow-[inset_3px_0_0_var(--color-brand-500)]" : ""}>
-                  <Link href={`/tasks/${t.id}`} className="block px-4 py-3.5 text-slate-800 no-underline hover:bg-slate-50 hover:no-underline">
-                    <div className="font-medium text-slate-900">{t.title}</div>
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                      <Badge tone={viewStatusTone[status]}>{viewStatusLabel[status]}</Badge>
-                      <Badge tone={due.tone}>
-                        <CalendarClock size={11} aria-hidden /> {due.label}
-                      </Badge>
-                    </div>
-                    <MiniProgress status={t.status} returned={returned} />
-                    <div className="mt-2 text-xs text-slate-500">
-                      {personCol}: <span className="font-medium text-slate-700">{person.name}</span>
-                      {person.sub && ` · ${person.sub}`}
-                    </div>
-                    <Meta high={t.priority === "HIGH"} giverNote={giverNote} collab={t._count.collaborators} />
-                    {next && (
-                      <div>
-                        <NextStep text={next} />
+                <li key={t.id}>
+                  <Link href={`/tasks/${t.id}`} className="block no-underline hover:no-underline">
+                    <article className={`rounded-[6px] border border-border bg-card p-3 text-foreground ${next ? "shadow-[inset_3px_0_0_var(--color-primary)]" : ""}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <Badge tone={viewStatusTone[status]}>{viewStatusLabel[status]}</Badge>
+                        {due.note && due.tone !== "gray" && <span className={`whitespace-nowrap text-xs font-medium ${dueText[due.tone]}`}>{cap(due.note)}</span>}
                       </div>
-                    )}
+                      <div className="mt-1 text-[14px] font-medium leading-snug">{t.title}</div>
+                      <MiniProgress status={t.status} returned={returned} />
+                      <dl className="mt-2 space-y-0.5 text-[13px]">
+                        <div>
+                          <dt className="inline text-muted-foreground">Hạn:</dt>{" "}
+                          <dd className="inline tabular-nums">
+                            {due.date}
+                            {due.note && due.tone === "gray" && <span className="text-muted-foreground"> · {due.note}</span>}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="inline text-muted-foreground">{personCol}:</dt>{" "}
+                          <dd className="inline">
+                            {person.name}
+                            {person.sub && <span className="text-muted-foreground"> · {person.sub}</span>}
+                          </dd>
+                        </div>
+                      </dl>
+                      <Meta high={t.priority === "HIGH"} giverNote={giverNote} collab={t._count.collaborators} />
+                      {next && <NextStep text={next} />}
+                    </article>
                   </Link>
                 </li>
               ))}
@@ -216,7 +221,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
           </>
         )}
       </Card>
-      {rows.length === 200 && <p className="mt-2 text-xs text-slate-500">Đang hiện 200 nhiệm vụ đầu tiên. Dùng ô tìm kiếm hoặc chọn trạng thái để thu hẹp.</p>}
+      {rows.length === 200 && <p className="mt-2 text-xs text-muted-foreground">Đang hiện 200 nhiệm vụ đầu tiên. Dùng ô tìm kiếm hoặc chọn trạng thái để thu hẹp.</p>}
 
       {canAssign && sp.new && (
         <NewTaskDialog
@@ -232,7 +237,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Promis
   );
 }
 
-const dueText = { gray: "text-slate-500", amber: "text-amber-700", red: "text-red-600", blue: "text-brand-600", green: "text-emerald-700", violet: "text-violet-700" } as const;
+const dueText = { gray: "text-muted-foreground", amber: "text-status-warning-text", red: "text-status-danger-text", blue: "text-status-info-text", green: "text-status-success-text", violet: "text-primary-text" } as const;
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const STEP: Partial<Record<TaskStatus, number>> = { TODO: 0, IN_PROGRESS: 1, REVIEW: 2, DONE: 3 };
 
@@ -243,7 +248,7 @@ function MiniProgress({ status, returned }: { status: TaskStatus; returned: bool
   return (
     <div className="mt-2 flex w-28 gap-0.5" aria-hidden>
       {[0, 1, 2, 3].map((i) => (
-        <span key={i} className={`h-1 flex-1 rounded-full ${returned && i === 2 ? "bg-red-400" : i <= idx ? (status === "DONE" ? "bg-emerald-500" : "bg-brand-500") : "bg-slate-200"}`} />
+        <span key={i} className={`h-1 flex-1 rounded-full ${returned && i === 2 ? "bg-status-danger" : i <= idx ? (status === "DONE" ? "bg-status-success" : "bg-primary") : "bg-foreground/10"}`} />
       ))}
     </div>
   );
@@ -252,18 +257,10 @@ function MiniProgress({ status, returned }: { status: TaskStatus; returned: bool
 function Meta({ high, giverNote, collab }: { high: boolean; giverNote: string | null; collab: number }) {
   if (!high && !giverNote && !collab) return null;
   return (
-    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500">
-      {high && (
-        <span className="inline-flex items-center gap-1 font-medium text-red-600">
-          <Flag size={11} aria-hidden /> Ưu tiên cao
-        </span>
-      )}
+    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+      {high && <span className="font-medium text-status-danger-text">Ưu tiên cao</span>}
       {giverNote && <span>Giao bởi {giverNote}</span>}
-      {collab > 0 && (
-        <span className="inline-flex items-center gap-1">
-          <Users size={11} aria-hidden /> {collab} người phối hợp
-        </span>
-      )}
+      {collab > 0 && <span>{collab} người phối hợp</span>}
     </div>
   );
 }
@@ -272,17 +269,18 @@ function PersonCell({ name, sub }: { name: string; sub: string | null }) {
   return (
     <div className="flex items-start gap-2">
       <Avatar name={name} size={26} />
-      <div className="leading-tight">
-        <div className="text-slate-800">{name}</div>
-        {sub && <div className="mt-0.5 text-xs text-slate-500">{sub}</div>}
+      <div className="min-w-0 leading-tight">
+        <div className="text-foreground">{name}</div>
+        {sub && <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>}
       </div>
     </div>
   );
 }
 
+/** Việc người xem cần làm tiếp: chữ màu chính, không nền */
 function NextStep({ text }: { text: string }) {
   return (
-    <div className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700">
+    <div className="mt-1.5 flex items-center gap-1 text-xs font-medium text-primary-text">
       <ArrowRight size={12} aria-hidden /> {text}
     </div>
   );

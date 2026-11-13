@@ -121,24 +121,24 @@ export function PlanItemsEditor({ state }: { state: PlanItemsState }) {
       <div className="flex flex-col gap-4">
         {sections.map((sec) => (
           <section key={sec}>
-            <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-brand-900">{sec}</h3>
-            <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+            <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-[0.06em] text-muted-foreground">{sec}</h3>
+            <ul className="divide-y divide-border rounded-[4px] border border-border">
               {rows
                 .filter((r) => r.section === sec)
                 .map((r) => {
                   if (r.on) stt++;
                   const pctUnit = isPct(r.unit);
                   return (
-                    <li key={r.key} className={`grid gap-x-3 gap-y-2 px-3 py-2.5 sm:grid-cols-[auto_minmax(0,1fr)_auto] ${r.on ? "" : "bg-slate-50"}`}>
+                    <li key={r.key} className={`grid gap-x-3 gap-y-2 px-3 py-2.5 sm:grid-cols-[auto_minmax(0,1fr)_auto] ${r.on ? "" : "bg-muted/50"}`}>
                       <label className="flex items-start gap-2 pt-1 sm:pt-1.5">
                         <input
                           type="checkbox"
                           checked={r.on}
                           onChange={(e) => (r.custom && !e.target.checked ? setRows((rs) => rs.filter((x) => x.key !== r.key)) : patch(r.key, { on: e.target.checked }))}
-                          className="h-4 w-4 accent-brand-600"
+                          className="h-4 w-4 accent-primary"
                           aria-label={`Dùng chỉ số ${r.name || "mới"}`}
                         />
-                        <span className="w-5 text-xs tabular-nums text-slate-500 sm:hidden">{r.on ? stt : ""}</span>
+                        <span className="w-5 text-xs tabular-nums text-muted-foreground sm:hidden">{r.on ? stt : ""}</span>
                       </label>
                       <div className={`min-w-0 ${r.on ? "" : "opacity-50"}`}>
                         {r.custom ? (
@@ -156,17 +156,17 @@ export function PlanItemsEditor({ state }: { state: PlanItemsState }) {
                         ) : (
                           <>
                             <div className="flex flex-wrap items-baseline gap-x-2">
-                              <span className="hidden w-5 text-xs tabular-nums text-slate-500 sm:inline">{r.on ? stt : ""}</span>
-                              <span className="font-medium text-slate-800">{r.name}</span>
+                              <span className="hidden w-5 text-xs tabular-nums text-muted-foreground sm:inline">{r.on ? stt : ""}</span>
+                              <span className="font-medium text-foreground">{r.name}</span>
                             </div>
-                            <div className="mt-0.5 text-xs text-slate-500 sm:pl-7">
+                            <div className="mt-0.5 text-xs text-muted-foreground sm:pl-7">
                               Đơn vị: {r.unit} · {kpiFormulaLabel[r.formula]}
                             </div>
                           </>
                         )}
                       </div>
                       <div className={`flex items-center gap-2 pl-6 sm:pl-0 ${r.on ? "" : "opacity-50"}`}>
-                        <label className="flex items-center gap-1 text-xs text-slate-500">
+                        <label className="flex items-center gap-1 text-xs text-muted-foreground">
                           Chỉ tiêu
                           <input
                             value={r.target}
@@ -177,7 +177,7 @@ export function PlanItemsEditor({ state }: { state: PlanItemsState }) {
                           />
                           <span className="w-6">{pctUnit ? "%" : ""}</span>
                         </label>
-                        <label className="flex items-center gap-1 text-xs text-slate-500">
+                        <label className="flex items-center gap-1 text-xs text-muted-foreground">
                           Tỉ trọng
                           <input
                             value={r.weight}
@@ -185,12 +185,12 @@ export function PlanItemsEditor({ state }: { state: PlanItemsState }) {
                             onChange={(e) => patch(r.key, { weight: e.target.value })}
                             inputMode="decimal"
                             aria-invalid={r.on && !(num(r.weight)! > 0) ? true : undefined}
-                            className={`input w-16 text-right tabular-nums ${r.on && !(num(r.weight)! > 0) ? "border-amber-300 bg-amber-50/40" : ""}`}
+                            className={`input w-16 text-right tabular-nums ${r.on && !(num(r.weight)! > 0) ? "border-status-warning" : ""}`}
                           />
                           %
                         </label>
                         {r.custom && (
-                          <button type="button" onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} className="btn btn-ghost btn-sm text-red-600" aria-label="Xóa chỉ số riêng">
+                          <button type="button" onClick={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} className="btn btn-ghost btn-sm text-status-danger-text" aria-label="Xóa chỉ số riêng">
                             <Trash2 size={15} />
                           </button>
                         )}
@@ -216,7 +216,7 @@ export function PlanItemsEditor({ state }: { state: PlanItemsState }) {
 
       <div
         role="status"
-        className={`mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm ${off || problems ? "bg-amber-50 text-amber-800" : "bg-emerald-50 text-emerald-800"}`}
+        className={`mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[4px] bg-muted/50 px-3 py-2 text-sm ${off || problems ? "text-status-warning-text" : "text-status-success-text"}`}
       >
         <span>
           Dùng <b>{chosen}</b>/{rows.length} chỉ số

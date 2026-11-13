@@ -45,10 +45,10 @@ export default async function PersonTrackingPage({ params, searchParams }: { par
       />
 
       {row.reasons.length > 0 && (
-        <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden />
+        <div role="note" className="card mb-4 flex items-start gap-2 px-4 py-2.5 text-[13px] text-foreground">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-status-warning-text" aria-hidden />
           <span>
-            <b>Cần chú ý:</b> {row.reasons.join("; ")}
+            <b className="font-medium text-status-warning-text">Cần chú ý:</b> {row.reasons.join("; ")}
           </span>
         </div>
       )}
@@ -65,12 +65,13 @@ export default async function PersonTrackingPage({ params, searchParams }: { par
         {tasks.length === 0 ? (
           <EmptyState title="Không có nhiệm vụ trong quý" />
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          <div className="hidden overflow-x-auto md:block">
             <table className="table">
               <thead>
                 <tr>
                   <th>Nhiệm vụ</th>
-                  <th>Người giao</th>
+                  <th className="hidden xl:table-cell">Người giao</th>
                   <th>Hạn</th>
                   <th>Trạng thái</th>
                   <th className="text-right">Bị trả lại</th>
@@ -86,8 +87,8 @@ export default async function PersonTrackingPage({ params, searchParams }: { par
                           {t.title}
                         </Link>
                       </td>
-                      <td>{t.createdBy?.employee?.fullName ?? t.createdBy?.email ?? "—"}</td>
-                      <td className="whitespace-nowrap">
+                      <td className="hidden xl:table-cell">{t.createdBy?.employee?.fullName ?? t.createdBy?.email ?? "—"}</td>
+                      <td className="whitespace-nowrap tabular-nums">
                         {fmtDate(t.dueDate)}
                         {late > 0 && (
                           <div>
@@ -98,13 +99,35 @@ export default async function PersonTrackingPage({ params, searchParams }: { par
                       <td>
                         <Badge tone={taskStatusTone[t.status]}>{taskStatusLabel[t.status]}</Badge>
                       </td>
-                      <td className={`text-right tabular-nums ${t.comments.length ? "font-semibold text-amber-700" : "text-slate-400"}`}>{t.comments.length}</td>
+                      <td className={`text-right tabular-nums ${t.comments.length ? "font-medium text-status-warning-text" : "text-muted-foreground"}`}>{t.comments.length}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
           </div>
+          {/* Điện thoại: danh sách xếp chồng trong khối */}
+          <ul className="divide-y divide-border md:hidden">
+            {tasks.map((t) => {
+              const late = t.dueDate && (t.status === "TODO" || t.status === "IN_PROGRESS") ? diffDays(t.dueDate, now) : 0;
+              return (
+                <li key={t.id} className="px-3 py-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <Link href={`/tasks/${t.id}`} className="min-w-0 text-[14px] font-medium">
+                      {t.title}
+                    </Link>
+                    <Badge tone={taskStatusTone[t.status]}>{taskStatusLabel[t.status]}</Badge>
+                  </div>
+                  <dl className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-[13px]">
+                    <div><dt className="inline text-muted-foreground">Hạn:</dt> <dd className="inline tabular-nums">{fmtDate(t.dueDate)}</dd>{late > 0 && <> <Badge tone="red">Quá hạn {late} ngày</Badge></>}</div>
+                    <div><dt className="inline text-muted-foreground">Người giao:</dt> <dd className="inline">{t.createdBy?.employee?.fullName ?? t.createdBy?.email ?? "—"}</dd></div>
+                    <div><dt className="inline text-muted-foreground">Bị trả lại:</dt> <dd className={`inline tabular-nums ${t.comments.length ? "font-medium text-status-warning-text" : ""}`}>{t.comments.length}</dd></div>
+                  </dl>
+                </li>
+              );
+            })}
+          </ul>
+          </>
         )}
       </Card>
 
@@ -120,18 +143,19 @@ export default async function PersonTrackingPage({ params, searchParams }: { par
               <Card
                 key={p.id}
                 pad={false}
+                className="max-md:[&>div:first-child]:flex-wrap"
                 title={`Phiếu KPI ${periodLabel(p.periodType, p.period, p.year)}`}
                 actions={
-                  <div className="flex items-center gap-3 text-xs">
-                    <span className="tabular-nums text-slate-600">
-                      Tạm tính <b className="text-slate-900">{k.score === null ? "—" : fmtPct(k.score)}</b> · {k.updated}/{k.total} chỉ số đã cập nhật
+                  <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-xs max-md:w-full max-md:justify-start">
+                    <span className="tabular-nums text-muted-foreground">
+                      Tạm tính <b className="font-medium text-foreground">{k.score === null ? "—" : fmtPct(k.score)}</b> · {k.updated}/{k.total} chỉ số đã cập nhật
                     </span>
                     <Badge tone={kpiStatusView(p.status, locked.has(p.id)).tone}>{kpiStatusView(p.status, locked.has(p.id)).label}</Badge>
                     <Link href={`/kpi/${p.id}`}>Mở phiếu</Link>
                   </div>
                 }
               >
-                <div className="overflow-x-auto">
+                <div className="hidden overflow-x-auto md:block">
                   <table className="table">
                     <thead>
                       <tr>
@@ -146,8 +170,8 @@ export default async function PersonTrackingPage({ params, searchParams }: { par
                       {p.items.map((i) => (
                         <tr key={i.id}>
                           <td>
-                            <div className="font-medium text-slate-800">{i.name}</div>
-                            <div className="text-xs text-slate-500">{i.section}</div>
+                            <div className="font-medium text-foreground">{i.name}</div>
+                            <div className="text-xs text-muted-foreground">{i.section}</div>
                           </td>
                           <td className="text-right tabular-nums">{pct(i.weight, 0)}</td>
                           <td className="whitespace-nowrap text-right tabular-nums">
@@ -162,6 +186,23 @@ export default async function PersonTrackingPage({ params, searchParams }: { par
                     </tbody>
                   </table>
                 </div>
+                <ul className="divide-y divide-border md:hidden">
+                  {p.items.map((i) => (
+                    <li key={i.id} className="px-3 py-2.5">
+                      <div className="text-[14px] font-medium text-foreground">{i.name}</div>
+                      <div className="text-xs text-muted-foreground">{i.section}</div>
+                      <dl className="mt-1 flex flex-wrap gap-x-5 gap-y-1 text-[13px]">
+                        <div><dt className="inline text-muted-foreground">Tỷ trọng:</dt> <dd className="inline tabular-nums">{pct(i.weight, 0)}</dd></div>
+                        <div><dt className="inline text-muted-foreground">Chỉ tiêu:</dt> <dd className="inline tabular-nums">{toDisplay(i.unit, i.target)} {i.unit}</dd></div>
+                        <div>
+                          <dt className="inline text-muted-foreground">Thực hiện:</dt>{" "}
+                          <dd className="inline tabular-nums">{i.actual === null ? <Badge tone="amber">Chưa cập nhật</Badge> : `${toDisplay(i.unit, i.actual)} ${i.unit}`}</dd>
+                        </div>
+                        <div><dt className="inline text-muted-foreground">% đạt:</dt> <dd className="inline tabular-nums">{i.actual === null ? "—" : pct(itemCompletion(i.formula, i.target, i.actual), 0)}</dd></div>
+                      </dl>
+                    </li>
+                  ))}
+                </ul>
               </Card>
             );
           })}

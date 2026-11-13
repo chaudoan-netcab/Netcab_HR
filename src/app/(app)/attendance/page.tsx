@@ -42,9 +42,9 @@ export default async function AttendancePage() {
                   <tr key={m.month}>
                     <td className="font-medium">{m.label}</td>
                     <td>
-                      <div className="flex flex-wrap gap-1.5">
+                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                         <Badge tone={m.status === "LOCKED" ? "green" : "amber"}>{m.status === "LOCKED" ? "Đã import (khóa)" : "Chưa import"}</Badge>
-                        {m.reimported && <Badge tone="violet">Đã import lại</Badge>}
+                        {m.reimported && <span className="text-xs text-muted-foreground">Đã import lại</span>}
                       </div>
                     </td>
                   </tr>
@@ -54,33 +54,55 @@ export default async function AttendancePage() {
           )}
         </Card>
 
-        <Card title="Lịch sử import" pad={false} className="lg:col-span-3">
+        <Card title="Lịch sử import" pad={false} className={`lg:col-span-3 ${history.length ? "max-md:border-0 max-md:bg-transparent max-md:[&>div:first-child]:px-0" : ""}`}>
           {history.length === 0 ? (
             <EmptyState title="Chưa có lần import nào" />
           ) : (
+            <>
+            <div className="hidden overflow-x-auto md:block">
             <table className="table">
               <thead>
                 <tr>
                   <th>Thời điểm</th>
                   <th>Tháng</th>
                   <th>File · Người import</th>
-                  <th>Lý do import lại</th>
+                  <th className="hidden xl:table-cell">Lý do import lại</th>
                 </tr>
               </thead>
               <tbody>
                 {history.map((h) => (
                   <tr key={h.id}>
-                    <td className="whitespace-nowrap text-xs">{fmtDateTime(new Date(h.importedAt))}</td>
+                    <td className="whitespace-nowrap text-xs tabular-nums">{fmtDateTime(new Date(h.importedAt))}</td>
                     <td className="whitespace-nowrap">{monthLabel(h.month)}</td>
                     <td>
-                      <div className="text-sm">{h.fileName}</div>
-                      <div className="text-xs text-slate-500">{h.importedBy} · {h.rows} dòng</div>
+                      <div className="max-w-56 truncate text-sm" title={h.fileName}>{h.fileName}</div>
+                      <div className="text-xs text-muted-foreground">{h.importedBy} · {h.rows} dòng</div>
                     </td>
-                    <td className="text-xs text-slate-600">{h.reason ?? <span className="text-slate-400">—</span>}</td>
+                    <td className="hidden min-w-44 text-xs text-muted-foreground xl:table-cell">{h.reason ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
+            <ul className="space-y-3 md:hidden">
+              {history.map((h) => (
+                <li key={h.id}>
+                  <article className="rounded-[6px] border border-border bg-card p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs tabular-nums text-muted-foreground">{fmtDateTime(new Date(h.importedAt))}</span>
+                      <span className="text-xs text-muted-foreground">{h.rows} dòng</span>
+                    </div>
+                    <div className="mt-0.5 text-[14px] font-medium text-foreground">{monthLabel(h.month)}</div>
+                    <dl className="mt-2 flex flex-col gap-y-1 text-[13px]">
+                      <div className="min-w-0"><dt className="inline text-muted-foreground">File:</dt> <dd className="inline break-all">{h.fileName}</dd></div>
+                      <div><dt className="inline text-muted-foreground">Người import:</dt> <dd className="inline">{h.importedBy}</dd></div>
+                      {h.reason && <div><dt className="inline text-muted-foreground">Lý do import lại:</dt> <dd className="inline">{h.reason}</dd></div>}
+                    </dl>
+                  </article>
+                </li>
+              ))}
+            </ul>
+            </>
           )}
         </Card>
       </div>

@@ -16,6 +16,9 @@ import { EditPlanItemsDialog } from "@/app/(app)/kpi/_components/kpi-dialogs";
 import { deletePlan, remindPlan, savePlan, updatePlanItems } from "../actions";
 import { DateInput } from "@/components/date-input";
 
+/** Nhãn thông tin (giống `.dl dt`): 12px xám */
+const META_LABEL = "text-xs text-muted-foreground";
+
 export default async function KpiPlanPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; err?: string }> }) {
   const user = await requireEmployeeUser();
   const { id } = await params;
@@ -88,8 +91,8 @@ export default async function KpiPlanPage({ params, searchParams }: { params: Pr
       />
       <Flash ok={sp.ok} err={sp.err} />
       {lock.locked && (
-        <div role="status" className="mb-4 flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          <Lock size={16} className="mt-0.5 shrink-0" aria-hidden />
+        <div role="status" className="card mb-4 flex items-start gap-2 px-4 py-3 text-sm text-foreground max-md:px-3">
+          <Lock size={16} className="mt-0.5 shrink-0 text-status-success-text" aria-hidden />
           <span>
             {lock.bySummary
               ? `Phiếu đã khóa: ${lock.unit?.name ?? "phòng"} đã gửi bản cuối quý ${lock.quarter}/${plan.year} cho HR${sumAt ? ` ngày ${fmtDate(sumAt)}` : ""}.`
@@ -100,10 +103,10 @@ export default async function KpiPlanPage({ params, searchParams }: { params: Pr
       )}
 
       {reminder && (
-        <div role="status" className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <BellRing size={16} className="mt-0.5 shrink-0" aria-hidden />
+        <div role="status" className="card mb-4 flex items-start gap-2 px-4 py-3 text-sm text-foreground max-md:px-3">
+          <BellRing size={16} className="mt-0.5 shrink-0 text-status-warning-text" aria-hidden />
           <span>
-            {self ? <><b>{reminder.by}</b> nhắc bạn cập nhật tiến độ KPI</> : <>Đã nhắc nhân viên cập nhật tiến độ</>} lúc {fmtDateTime(new Date(reminder.at))}.
+            {self ? <><b className="font-medium">{reminder.by}</b> nhắc bạn cập nhật tiến độ KPI</> : <>Đã nhắc nhân viên cập nhật tiến độ</>} lúc {fmtDateTime(new Date(reminder.at))}.
           </span>
         </div>
       )}
@@ -112,31 +115,31 @@ export default async function KpiPlanPage({ params, searchParams }: { params: Pr
         <Card className="mb-5">
           <div className="grid gap-4 text-sm md:grid-cols-3">
             <div>
-              <div className="text-xs text-slate-500">Thời gian của kỳ</div>
-              <div className="font-semibold">{fmtDate(range.start)} – {fmtDate(range.end)}</div>
-              <div className={`mt-0.5 text-xs ${daysLeft < 0 ? "font-medium text-red-600" : daysLeft <= 15 ? "font-medium text-amber-700" : "text-slate-500"}`}>
+              <div className={META_LABEL}>Thời gian của kỳ</div>
+              <div className="mt-1 font-medium tabular-nums text-foreground">{fmtDate(range.start)} – {fmtDate(range.end)}</div>
+              <div className={`mt-0.5 text-xs ${daysLeft < 0 ? "font-medium text-status-danger-text" : daysLeft <= 15 ? "font-medium text-status-warning-text" : "text-muted-foreground"}`}>
                 {range.start > today() ? `Chưa tới kỳ · bắt đầu ${fmtDate(range.start)}` : daysLeft < 0 ? `Đã hết kỳ ${-daysLeft} ngày · cần gửi kết quả` : daysLeft === 0 ? "Hôm nay là ngày cuối kỳ" : `Còn ${daysLeft} ngày đến cuối kỳ`}
               </div>
             </div>
             <div>
-              <div className="flex items-baseline justify-between gap-2 text-xs text-slate-500">
+              <div className={`flex items-baseline justify-between gap-2 ${META_LABEL}`}>
                 <span>Tiến độ cập nhật</span>
                 <span className="tabular-nums">{prov.updated}/{prov.total} chỉ số</span>
               </div>
               <div className="mt-2">
                 <ProgressBar value={prov.total ? prov.updated / prov.total : 0} tone={prov.updated === prov.total ? "green" : "blue"} />
               </div>
-              <div className="mt-1.5 text-xs text-slate-500">
-                KPI tạm tính <b className="tabular-nums text-slate-800">{pct(prov.score)}</b> <span className="text-slate-400">(chỉ tính các chỉ số đã có số liệu)</span>
+              <div className="mt-1.5 text-xs text-muted-foreground">
+                KPI tạm tính <b className="font-semibold tabular-nums text-foreground">{pct(prov.score)}</b> (chỉ tính các chỉ số đã có số liệu)
               </div>
             </div>
             <div>
-              <div className="text-xs text-slate-500">Cập nhật lần cuối</div>
-              <div className="font-semibold">{lastUpdate ? fmtDateTime(new Date(lastUpdate.at)) : "—"}</div>
-              <div className="mt-0.5 text-xs text-slate-500">{lastUpdate ? lastUpdate.by : "Chưa ghi nhận lần cập nhật nào"}</div>
+              <div className={META_LABEL}>Cập nhật lần cuối</div>
+              <div className="mt-1 font-medium tabular-nums text-foreground">{lastUpdate ? fmtDateTime(new Date(lastUpdate.at)) : "—"}</div>
+              <div className="mt-0.5 text-xs text-muted-foreground">{lastUpdate ? lastUpdate.by : "Chưa ghi nhận lần cập nhật nào"}</div>
             </div>
           </div>
-          <p className="mt-4 border-t border-slate-100 pt-3 text-xs text-slate-500">
+          <p className="mt-4 border-t border-border pt-3 text-xs text-muted-foreground">
             {self
               ? "Cập nhật số liệu bất cứ lúc nào trong kỳ rồi bấm “Lưu tiến độ”. Cuối kỳ nhập đủ các chỉ số và gửi báo cáo cho quản lý xác nhận."
               : "Nhân viên tự cập nhật tiến độ trong kỳ. Bấm “Nhắc cập nhật” để gửi lời nhắc vào mục Việc cần làm của nhân viên."}
@@ -148,16 +151,16 @@ export default async function KpiPlanPage({ params, searchParams }: { params: Pr
         <Card className="mb-5">
           <div className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <div className="text-xs text-slate-500">Họ và tên</div>
-              <Link href={`/employees/${plan.employeeId}`} className="font-semibold">{plan.employee.fullName}</Link>
+              <div className={META_LABEL}>Họ và tên</div>
+              <Link href={`/employees/${plan.employeeId}`} className="mt-1 inline-block font-medium">{plan.employee.fullName}</Link>
             </div>
             <div>
-              <div className="text-xs text-slate-500">Chức vụ</div>
-              <div className="font-semibold">{plan.employee.position ?? "—"}</div>
+              <div className={META_LABEL}>Chức vụ</div>
+              <div className="mt-1 font-medium text-foreground">{plan.employee.position ?? "—"}</div>
             </div>
             <div>
-              <div className="text-xs text-slate-500">Phòng ban</div>
-              <div className="font-semibold">{plan.employee.department?.name ?? "—"}</div>
+              <div className={META_LABEL}>Phòng ban</div>
+              <div className="mt-1 font-medium text-foreground">{plan.employee.department?.name ?? "—"}</div>
             </div>
             {editable && manager ? (
               <Field label="Ngày đánh giá">
@@ -165,8 +168,8 @@ export default async function KpiPlanPage({ params, searchParams }: { params: Pr
               </Field>
             ) : (
               <div>
-                <div className="text-xs text-slate-500">Ngày đánh giá</div>
-                <div className="font-semibold">{fmtDate(plan.evaluationDate)}</div>
+                <div className={META_LABEL}>Ngày đánh giá</div>
+                <div className="mt-1 font-medium tabular-nums text-foreground">{fmtDate(plan.evaluationDate)}</div>
               </div>
             )}
           </div>
@@ -176,7 +179,7 @@ export default async function KpiPlanPage({ params, searchParams }: { params: Pr
           pad={false}
           className="mb-5"
           title={`Chỉ số đánh giá (${items.length})`}
-          actions={customCount > 0 ? <span className="text-xs text-slate-500">Có {customCount} chỉ số riêng cho người này</span> : undefined}
+          actions={customCount > 0 ? <span className="text-xs text-muted-foreground">Có {customCount} chỉ số riêng cho người này</span> : undefined}
         >
           <KpiEntryTable
             editable={editable}
@@ -189,17 +192,17 @@ export default async function KpiPlanPage({ params, searchParams }: { params: Pr
             {manager && !lock.locked ? (
               <textarea name="managerComment" defaultValue={plan.managerComment ?? ""} className="input" placeholder="Điểm tốt, điểm cần cải thiện trong kỳ…" />
             ) : (
-              <p className="text-sm text-slate-700">{plan.managerComment ?? <span className="text-slate-400">Chưa có nhận xét</span>}</p>
+              <p className="whitespace-pre-line text-sm text-foreground">{plan.managerComment ?? <span className="text-muted-foreground">Chưa có nhận xét</span>}</p>
             )}
           </Card>
           <Card title="Các bước">
             <ol className="flex flex-col gap-3 text-sm">
               {steps.map((st) => (
                 <li key={st.label} className="flex items-start gap-2">
-                  {st.at ? <CheckCircle2 size={18} className="mt-0.5 text-emerald-500" /> : <Circle size={18} className="mt-0.5 text-slate-300" />}
+                  {st.at ? <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-status-success-text" aria-hidden /> : <Circle size={16} className="mt-0.5 shrink-0 text-muted-foreground" aria-hidden />}
                   <div>
-                    <div className="font-medium">{st.label}</div>
-                    <div className="text-xs text-slate-500">{st.at ? `${st.who} · ${fmtDateTime(st.at)}` : ("pending" in st && st.pending) || "Chưa xác nhận"}</div>
+                    <div className="font-medium text-foreground">{st.label}</div>
+                    <div className="text-xs text-muted-foreground">{st.at ? `${st.who} · ${fmtDateTime(st.at)}` : ("pending" in st && st.pending) || "Chưa xác nhận"}</div>
                   </div>
                 </li>
               ))}
@@ -209,7 +212,7 @@ export default async function KpiPlanPage({ params, searchParams }: { params: Pr
 
         <div className="action-bar">
           {manager && !lock.locked && (
-            <button formAction={deletePlan.bind(null, plan.id)} className="btn btn-ghost mr-auto text-red-600">
+            <button formAction={deletePlan.bind(null, plan.id)} className="btn btn-danger mr-auto">
               Xóa phiếu
             </button>
           )}
@@ -225,7 +228,7 @@ export default async function KpiPlanPage({ params, searchParams }: { params: Pr
           {lock.locked && hrm && (
             <span className="flex flex-wrap items-center gap-2">
               <label className="sr-only" htmlFor="reopenReason">Lý do mở lại</label>
-              <input id="reopenReason" name="reopenReason" required className="input w-72" placeholder="Lý do mở lại (bắt buộc)" />
+              <input id="reopenReason" name="reopenReason" required className="input w-full sm:w-72" placeholder="Lý do mở lại (bắt buộc)" />
               <button name="intent" value="reopen" className="btn">Mở lại phiếu</button>
             </span>
           )}

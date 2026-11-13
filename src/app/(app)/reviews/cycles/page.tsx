@@ -2,7 +2,7 @@ import Link from "next/link";
 import { reviewTabs } from "@/lib/nav";
 import { db } from "@/lib/server/db";
 import { fmtDate, today } from "@/lib/dates";
-import { Badge, Card, Field, Flash, PageHeader, ProgressBar, Tabs } from "@/components/ui";
+import { Badge, Card, EmptyState, Field, Flash, PageHeader, ProgressBar, Tabs } from "@/components/ui";
 import { createCycle } from "../actions";
 import { capsOf, requireHRM } from "@/lib/server/access";
 import { DateInput } from "@/components/date-input";
@@ -19,21 +19,21 @@ export default async function CyclesPage({ searchParams }: { searchParams: Promi
       <Flash ok={sp.ok} err={sp.err} />
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="flex flex-col gap-3 lg:col-span-2">
-          {cycles.length === 0 && <Card><p className="text-sm text-slate-500">Chưa có kỳ đánh giá. Tạo kỳ mới tại mục bên phải.</p></Card>}
+          {cycles.length === 0 && <Card><EmptyState title="Chưa có kỳ đánh giá" hint="Tạo kỳ mới tại mục bên phải." /></Card>}
           {cycles.map((c) => {
             const doneN = c.reviews.filter((r) => r.status === "COMPLETED").length;
             return (
-              <Link key={c.id} href={`/reviews/cycles/${c.id}`} className="card block p-4 text-slate-700 no-underline hover:no-underline hover:shadow-md">
+              <Link key={c.id} href={`/reviews/cycles/${c.id}`} className="card block px-5 py-4 text-foreground no-underline transition-colors hover:bg-muted/60 hover:no-underline max-md:px-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="font-semibold text-slate-900">{c.name}</div>
+                  <div className="min-w-0 font-medium text-foreground">{c.name}</div>
                   <Badge tone={c.status === "OPEN" ? "green" : "gray"}>{c.status === "OPEN" ? "Đang mở" : "Đã đóng"}</Badge>
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="mt-1 text-xs text-muted-foreground">
                   {c.purpose} · {fmtDate(c.periodStart)} – {fmtDate(c.periodEnd)} · hạn {fmtDate(c.dueDate)}
                 </div>
                 <div className="mt-3 flex items-center gap-3">
                   <ProgressBar value={c.reviews.length ? doneN / c.reviews.length : 0} tone="green" />
-                  <span className="whitespace-nowrap text-sm tabular-nums">{doneN}/{c.reviews.length} hoàn tất</span>
+                  <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground">{doneN}/{c.reviews.length} hoàn tất</span>
                 </div>
               </Link>
             );
@@ -50,7 +50,7 @@ export default async function CyclesPage({ searchParams }: { searchParams: Promi
             <Field label="Hạn hoàn thành"><DateInput name="dueDate" /></Field>
             <label className="flex items-start gap-2 text-sm">
               <input type="checkbox" name="includeAll" className="mt-1" />
-              <span>Gồm cả thực tập sinh, CTV và người vào làm dưới 1 tháng <span className="block text-xs text-slate-500">Mặc định theo quy định: chỉ nhân viên đã ký HĐLĐ từ 1 tháng trở lên.</span></span>
+              <span>Gồm cả thực tập sinh, CTV và người vào làm dưới 1 tháng <span className="block text-xs text-muted-foreground">Mặc định theo quy định: chỉ nhân viên đã ký HĐLĐ từ 1 tháng trở lên.</span></span>
             </label>
             <button className="btn btn-primary">Tạo kỳ & sinh phiếu</button>
           </form>

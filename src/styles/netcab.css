@@ -1,0 +1,131 @@
+/*
+ * NETCAB design tokens: bộ token chung cho mọi app NETCAB.
+ * Chép nguyên từ Netcab ONE (frontend/src/assets/main.css), là bản chuẩn. Đổi token thì đổi ở Netcab ONE trước,
+ * rồi chạy lại scripts/sync-tokens.sh để chép sang đây.
+ * CSS thuần, không phụ thuộc framework. Dark mode theo class .dark trên <html>.
+ */
+
+:root {
+  /* NETCAB Light Theme Tokens: màu theo Brand Guidelines NETCAB (xanh #0B1AA3, chữ xanh đen #0F1E35, vàng #EFAD06), chốt 13/11/2026 */
+  --background: #f6f6fb;
+  --foreground: #0f1e35;
+  --card: #ffffff;
+  --card-foreground: #0f1e35;
+  --popover: #ffffff;
+  --popover-foreground: #0f1e35;
+  --primary: #0b1aa3;
+  --primary-foreground: #ffffff;
+  --secondary: #efeff7;
+  --secondary-foreground: #0f1e35;
+  --muted: #f1f1f8;
+  --muted-foreground: #62667d;
+  --accent: #e7e9fb;
+  --accent-foreground: #0b1aa3;
+  --destructive: #ff5c75;
+  --destructive-foreground: #ffffff;
+  --border: #e6e6f0;
+  --input: #d9d9e6;
+  --ring: #0b1aa3;
+  --radius: 0.375rem;
+
+  /* Shreyu Sidebar Light Tokens */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #3a3d55;
+  --sidebar-primary: #0b1aa3;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e7e9fb;
+  --sidebar-accent-foreground: #0b1aa3;
+  --sidebar-border: #e6e6f0;
+  --sidebar-ring: #0b1aa3;
+
+  /* 8 chart colors */
+  --chart-1: #0b1aa3;
+  --chart-2: #0ea5e9;
+  --chart-3: #14b8a6;
+  --chart-4: #ec4899;
+  --chart-5: #8391a2;
+  --chart-6: #f97316;
+  --chart-7: #6366f1;
+  --chart-8: #94a3b8;
+
+  /* Unified Status Colors */
+  --status-success: #43d39e;
+  --status-warning: #efad06;
+  --status-danger: #ff5c75;
+  --status-info: #25c2e3;
+  --status-neutral: #8391a2;
+
+
+  /* Status / primary text colors with enough contrast (>= 4.5:1) on a light background */
+  --status-success-text: #0b6b49;
+  --status-warning-text: #8a5a00;
+  --status-danger-text: #c4122f;
+  --status-info-text: #0a6f8a;
+  --status-neutral-text: #5b6779;
+  --primary-text: #0b1aa3;
+  /* Text on solid status-colored backgrounds (success/warning/danger/neutral) */
+  --status-foreground: #0e1020;
+}
+
+.dark {
+  /*
+   * Dark mode xám trung tính (đổi 13/11/2026 theo ảnh mẫu user đưa): nền sâu nhất #0d0d0d, khối / thanh bên /
+   * thanh trên #171717, ô nhập và nền thanh #232323, menu / hộp thoại #232323, viền rất mảnh. Không ánh xanh tím.
+   * Màu nhấn cùng tông xanh thương hiệu nhưng sáng hơn (#0B1AA3 của Brandguide chỉ đạt tương phản 1,4 trên nền tối):
+   * nút #4b5cff (chữ trắng 4,9:1), chữ màu chính #8b96ff (6,75:1). Chữ chính gần trắng, chữ phụ xám #a1a1a1.
+   */
+  --background: #0d0d0d;
+  --foreground: #fafafa;
+  --card: #171717;
+  --card-foreground: #fafafa;
+  --popover: #232323;
+  --popover-foreground: #fafafa;
+  --primary: #4b5cff;
+  --primary-foreground: #ffffff;
+  --secondary: #232323;
+  --secondary-foreground: #fafafa;
+  --muted: #232323;
+  --muted-foreground: #a1a1a1;
+  --accent: #1a1f45;
+  --accent-foreground: #ffffff;
+  --destructive: #ff6b81;
+  --destructive-foreground: #ffffff;
+  --border: #262626;
+  --input: #2e2f2f;
+  --ring: #4b5cff;
+
+  /* Thanh bên cùng màu khối (#171717), tách với nội dung nhờ nền trang tối hơn */
+  --sidebar: #171717;
+  --sidebar-foreground: #d4d4d4;
+  --sidebar-primary: #4b5cff;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1f45;
+  --sidebar-accent-foreground: #8b96ff;
+  --sidebar-border: #262626;
+  --sidebar-ring: #4b5cff;
+
+  /* Chart and status colors keep high contrast on the dark background */
+  --chart-1: #6f7dff;
+  --chart-2: #38bdf8;
+  --chart-3: #2dd4bf;
+  --chart-4: #f472b6;
+  --chart-5: #a1a1aa;
+  --chart-6: #fb923c;
+  --chart-7: #818cf8;
+  --chart-8: #64748b;
+
+  --status-success: #43d39e;
+  --status-warning: #efad06;
+  --status-danger: #ff5c75;
+  --status-info: #25c2e3;
+  --status-neutral: #8391a2;
+
+
+  --status-success-text: #43d39e;
+  --status-warning-text: #efad06;
+  --status-danger-text: #ff7a8e;
+  --status-info-text: #4fd0ec;
+  --status-neutral-text: #a1a1a1;
+  --primary-text: #8b96ff;
+  --status-foreground: #0d0d0d;
+}

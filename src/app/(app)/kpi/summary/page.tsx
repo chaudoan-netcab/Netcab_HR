@@ -45,15 +45,15 @@ export default async function KpiSummaryTab({ searchParams }: { searchParams: Pr
             return (
               <Card key={s.unit.id} title={`${s.unit.name} · ${q.label}`} actions={<Badge tone={summaryStatusTone[st]}>{summaryStatusLabel[st]}</Badge>}>
                 {reminder && (
-                  <p className="mb-3 flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                    <BellRing size={15} aria-hidden /> {reminder.by} (HR) nhắc gửi bản cuối lúc {fmtDateTime(new Date(reminder.at))}
+                  <p className="mb-3 flex items-start gap-2 text-sm text-status-warning-text">
+                    <BellRing size={15} className="mt-0.5 shrink-0" aria-hidden /> <span>{reminder.by} (HR) nhắc gửi bản cuối lúc {fmtDateTime(new Date(reminder.at))}</span>
                   </p>
                 )}
                 <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-                  <div className="text-slate-600">
+                  <div className="min-w-0 text-muted-foreground">
                     {s.rows.length} nhân viên{s.unit.deptNames.length > 1 && ` (gồm ${s.unit.deptNames.join(", ")})`} · {s.rows.reduce((n, r) => n + r.plans.length, 0)} phiếu KPI trong quý
                     {scored.length > 0 && <> · KPI trung bình {pct(scored.reduce((n, r) => n + r.kpi.score!, 0) / scored.length)}</>}
-                    {s.blocking.length > 0 && <span className="text-amber-700"> · còn {s.blocking.length} phiếu chưa xác nhận</span>}
+                    {s.blocking.length > 0 && <span className="font-medium text-status-warning-text"> · còn {s.blocking.length} phiếu chưa xác nhận</span>}
                     {rec && <> · gửi lúc {fmtDateTime(new Date(rec.sentAt))}</>}
                   </div>
                   <Link href={`/kpi/summary/${s.unit.id}?yq=${q.value}`} className="btn btn-sm btn-primary">

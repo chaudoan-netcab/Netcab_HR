@@ -1,13 +1,19 @@
 "use client";
 // Biểu đồ tương tác cho trang Tổng quan — SVG/HTML thuần, không cần thư viện.
 // Quy tắc (theo skill dataviz + ui-ux-pro-max):
-// - Màu lấy từ token --viz-* trong globals.css, chữ luôn dùng màu chữ (không tô màu dữ liệu lên chữ)
+// - Màu lấy từ token --chart-* (NETCAB): chuỗi chính --chart-1, so sánh --chart-5; nền thanh/lưới pha từ --foreground. Chữ luôn dùng màu chữ
 // - Nét mảnh: đường 2px, thanh ≤ 24px, đầu thanh bo 4px, khe 2px màu nền giữa các phần
 // - Rê chuột / Tab bàn phím để xem tooltip; mọi số liệu đều có nhãn hoặc bảng số liệu nên không phụ thuộc tooltip
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 
 export type Segment = { key: string; label: string; value: number; color: string; href?: string };
+
+/** Nền thanh / lưới / trục: pha từ màu chữ nên tự đúng ở cả sáng và tối */
+const TRACK = "color-mix(in srgb, var(--foreground) 10%, transparent)";
+const GRID = "color-mix(in srgb, var(--foreground) 7%, transparent)";
+const AXIS = "color-mix(in srgb, var(--foreground) 22%, transparent)";
+const TARGET = "var(--muted-foreground)";
 
 const fmt = (v: number, unit: string, digits = 1) => `${Number(v.toFixed(digits)).toLocaleString("vi-VN")}${unit}`;
 
@@ -20,14 +26,14 @@ function Tooltip({ tip }: { tip: Tip }) {
   return (
     <div
       role="tooltip"
-      className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-lg"
+      className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-[4px] border border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-md"
       style={{ left: tip.x, top: tip.y - 8 }}
     >
       <div className="flex items-center gap-1.5">
         {tip.color && <span className="h-0.5 w-3 rounded-full" style={{ background: tip.color }} />}
-        <span className="font-semibold tabular-nums text-slate-900">{tip.value}</span>
+        <span className="font-medium tabular-nums text-foreground">{tip.value}</span>
       </div>
-      <div className="text-slate-500">{tip.label}</div>
+      <div className="text-muted-foreground">{tip.label}</div>
     </div>
   );
 }
@@ -47,26 +53,26 @@ function useBox<T extends HTMLElement>(fallback = 480) {
 }
 
 function Empty({ children }: { children: ReactNode }) {
-  return <div className="flex h-full min-h-28 items-center justify-center py-6 text-center text-sm text-slate-500">{children}</div>;
+  return <div className="flex h-full min-h-28 items-center justify-center py-6 text-center text-[13px] text-muted-foreground">{children}</div>;
 }
 
 /** Bảng số liệu ẩn dưới biểu đồ — đường thay thế cho người không xem được màu / tooltip */
 function DataTable({ rows, head }: { rows: [string, string][]; head: [string, string] }) {
   return (
-    <details className="no-print mt-3 text-xs text-slate-500">
-      <summary className="cursor-pointer select-none hover:text-slate-700">Xem bảng số liệu</summary>
+    <details className="no-print mt-3 text-xs text-muted-foreground">
+      <summary className="cursor-pointer select-none hover:text-foreground">Xem bảng số liệu</summary>
       <table className="mt-2 w-full">
         <thead>
-          <tr className="text-left text-slate-400">
+          <tr className="text-left text-muted-foreground">
             <th className="py-1 font-medium">{head[0]}</th>
             <th className="py-1 text-right font-medium">{head[1]}</th>
           </tr>
         </thead>
         <tbody>
           {rows.map(([a, b]) => (
-            <tr key={a} className="border-t border-slate-100">
-              <td className="py-1 text-slate-600">{a}</td>
-              <td className="py-1 text-right tabular-nums text-slate-800">{b}</td>
+            <tr key={a}>
+              <td className="py-1 text-muted-foreground">{a}</td>
+              <td className="py-1 text-right tabular-nums text-foreground">{b}</td>
             </tr>
           ))}
         </tbody>
@@ -126,7 +132,7 @@ export function Donut({
       <div ref={box} className="relative shrink-0" style={{ width: size, height: size }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={`${centerLabel ?? "Biểu đồ"}: ${segments.map((s) => `${s.label} ${s.value}`).join(", ")}`}>
           <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
-            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--viz-track)" strokeWidth={stroke} />
+            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={TRACK} strokeWidth={stroke} />
             {shown.map((s) => {
               const len = (s.value / total) * C;
               const el = (
@@ -155,8 +161,8 @@ export function Donut({
           </g>
         </svg>
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          <div className="text-2xl font-semibold leading-none text-slate-900">{centerValue ?? total}</div>
-          {centerLabel && <div className="mt-1 max-w-[70%] text-[11px] leading-tight text-slate-500">{centerLabel}</div>}
+          <div className="text-[22px] font-medium leading-none tabular-nums text-foreground">{centerValue ?? total}</div>
+          {centerLabel && <div className="mt-1 max-w-[70%] text-[11px] leading-tight text-muted-foreground">{centerLabel}</div>}
         </div>
         <Tooltip tip={tip} />
       </div>
@@ -173,18 +179,18 @@ function Legend({ segments, total, unit, active }: { segments: Segment[]; total:
         const inner = (
           <>
             <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: s.color }} />
-            <span className="min-w-0 flex-1 truncate whitespace-nowrap text-slate-600" title={s.label}>
+            <span className="min-w-0 flex-1 truncate whitespace-nowrap text-foreground" title={s.label}>
               {s.label}
             </span>
-            <span className="whitespace-nowrap font-semibold tabular-nums text-slate-900">{fmt(s.value, unit, 0)}</span>
-            <span className="w-8 shrink-0 text-right text-xs tabular-nums text-slate-400">{total ? Math.round((s.value / total) * 100) : 0}%</span>
+            <span className="whitespace-nowrap font-medium tabular-nums text-foreground">{fmt(s.value, unit, 0)}</span>
+            <span className="w-8 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{total ? Math.round((s.value / total) * 100) : 0}%</span>
           </>
         );
-        const cls = `flex items-center gap-2 rounded-md px-1.5 py-0.5 ${active === s.key ? "bg-slate-100" : ""}`;
+        const cls = `flex items-center gap-2 rounded-[4px] px-1.5 py-0.5 ${active === s.key ? "bg-muted" : ""}`;
         return (
           <li key={s.key}>
             {s.href ? (
-              <Link href={s.href} className={`${cls} no-underline hover:bg-slate-50 hover:no-underline`}>
+              <Link href={s.href} className={`${cls} no-underline hover:bg-muted/60 hover:no-underline`}>
                 {inner}
               </Link>
             ) : (
@@ -212,7 +218,7 @@ export function SegmentedBar({ segments, unit = "", legend = true, height = 12 }
           <div
             key={s.key}
             tabIndex={0}
-            className={`viz-anim h-full cursor-pointer outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-brand-500 ${i === 0 ? "rounded-l" : ""} ${i === shown.length - 1 ? "rounded-r" : ""}`}
+            className={`viz-anim h-full cursor-pointer outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring ${i === 0 ? "rounded-l" : ""} ${i === shown.length - 1 ? "rounded-r" : ""}`}
             style={{ flexGrow: s.value, flexBasis: 0, minWidth: 6, background: s.color }}
             onPointerMove={(e) => {
               const b = box.current!.getBoundingClientRect();
@@ -235,8 +241,8 @@ export function SegmentedBar({ segments, unit = "", legend = true, height = 12 }
             const inner = (
               <>
                 <span className="h-2.5 w-2.5 rounded-sm" style={{ background: s.color }} />
-                <span className="text-slate-600">{s.label}</span>
-                <span className="font-semibold tabular-nums text-slate-900">{fmt(s.value, unit, 0)}</span>
+                <span className="text-muted-foreground">{s.label}</span>
+                <span className="font-medium tabular-nums text-foreground">{fmt(s.value, unit, 0)}</span>
               </>
             );
             return (
@@ -264,7 +270,7 @@ export function HBarChart({
   max: fixedMax,
   unit = "",
   target,
-  color = "var(--viz-1)",
+  color = "var(--chart-1)",
   emptyText = "Chưa có dữ liệu",
   digits = 1,
 }: {
@@ -287,15 +293,15 @@ export function HBarChart({
 
   return (
     <div ref={box} className="relative">
-      <ul className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-1">
         {rows.map((r) => (
-          <li key={r.label} className="grid grid-cols-[minmax(0,9.5rem)_1fr_3.5rem] items-center gap-3 text-sm">
+          <li key={r.label} className="grid grid-cols-[minmax(0,min(9.5rem,40%))_1fr_3.5rem] items-center gap-3 text-[13px]">
             {r.href ? (
-              <Link href={r.href} className="truncate text-slate-700" title={r.label}>
+              <Link href={r.href} className="truncate text-foreground" title={r.label}>
                 {r.label}
               </Link>
             ) : (
-              <span className="truncate text-slate-700" title={r.label}>
+              <span className="truncate text-foreground" title={r.label}>
                 {r.label}
               </span>
             )}
@@ -312,9 +318,9 @@ export function HBarChart({
               }}
               onBlur={() => setTip(null)}
             >
-              <div className="absolute inset-x-0 top-1/2 h-3 -translate-y-1/2 rounded-r bg-[var(--viz-track)]" />
+              <div className="absolute inset-x-0 top-1/2 h-2 -translate-y-1/2 rounded-full bg-foreground/10" />
               <div
-                className="viz-anim absolute left-0 top-1/2 h-3 -translate-y-1/2 rounded-r group-hover:brightness-110 group-focus-visible:ring-2 group-focus-visible:ring-brand-500"
+                className="viz-anim absolute left-0 top-1/2 h-2 -translate-y-1/2 rounded-full group-hover:brightness-110 group-focus-visible:ring-2 group-focus-visible:ring-ring"
                 style={{ width: pos(r.value), minWidth: r.value > 0 ? 4 : 0, background: color }}
               />
               {/* Vạch mục tiêu: vùng rê chuột rộng 12px, chỉ hiện tên mốc khi rê vào (không ghi chú cố định) */}
@@ -329,11 +335,11 @@ export function HBarChart({
                   }}
                   onPointerLeave={() => setTip(null)}
                 >
-                  <span className="h-full w-0.5 rounded-full bg-slate-800" />
+                  <span className="h-full w-0.5 rounded-full bg-foreground/70" />
                 </div>
               )}
             </div>
-            <span className="text-right font-medium tabular-nums text-slate-800">{fmt(r.value, unit, digits)}</span>
+            <span className="text-right tabular-nums text-foreground">{fmt(r.value, unit, digits)}</span>
           </li>
         ))}
       </ul>
@@ -356,40 +362,55 @@ export function ColumnChart({
   emptyText?: string;
 }) {
   const [tip, setTip] = useState<Tip>(null);
+  const [hover, setHover] = useState<number | null>(null);
   const box = useRef<HTMLDivElement>(null);
   const max = Math.max(1, ...cols.map((c) => c.value));
   const total = cols.reduce((s, c) => s + c.value, 0);
   if (total === 0) return <Empty>{emptyText}</Empty>;
+  // Một chuỗi, một màu (--chart-1); cột đang chọn (mặc định cột cao nhất) chỉ in đậm số và nhãn
+  const top = cols.findIndex((c) => c.value === max);
+  const active = hover ?? top;
+  const tipOf = (c: (typeof cols)[number]) => ({ value: `${c.value}${unit} · ${Math.round((c.value / total) * 100)}%`, label: [c.label, c.sub].filter(Boolean).join(" · "), color: "var(--chart-1)" });
   return (
     <div ref={box} className="relative">
-      <div className="flex items-end gap-2 border-b border-[var(--viz-axis)]" style={{ height }}>
-        {cols.map((c) => (
+      <div className="flex items-end gap-2" style={{ height }}>
+        {cols.map((c, i) => (
           <div
             key={c.label}
             tabIndex={0}
             aria-label={`${c.label}: ${c.value}${unit}`}
-            className="group flex h-full flex-1 cursor-default flex-col items-center justify-end gap-1 outline-none"
-            onPointerMove={(e) => setTip({ x: e.clientX - box.current!.getBoundingClientRect().left, y: 0, value: `${c.value}${unit}${total ? ` · ${Math.round((c.value / total) * 100)}%` : ""}`, label: [c.label, c.sub].filter(Boolean).join(" · "), color: c.color })}
+            className="flex h-full flex-1 cursor-default flex-col items-center justify-end gap-1 outline-none"
+            onPointerMove={(e) => {
+              setHover(i);
+              setTip({ x: e.clientX - box.current!.getBoundingClientRect().left, y: 0, ...tipOf(c) });
+            }}
             onFocus={(e) => {
               const b = box.current!.getBoundingClientRect();
               const t = e.currentTarget.getBoundingClientRect();
-              setTip({ x: t.left - b.left + t.width / 2, y: 0, value: `${c.value}${unit}`, label: [c.label, c.sub].filter(Boolean).join(" · "), color: c.color });
+              setHover(i);
+              setTip({ x: t.left - b.left + t.width / 2, y: 0, ...tipOf(c) });
             }}
-            onPointerLeave={() => setTip(null)}
-            onBlur={() => setTip(null)}
+            onPointerLeave={() => {
+              setHover(null);
+              setTip(null);
+            }}
+            onBlur={() => {
+              setHover(null);
+              setTip(null);
+            }}
           >
-            <span className="text-xs font-semibold tabular-nums text-slate-800">{c.value}</span>
+            <span className={`text-xs tabular-nums ${i === active ? "font-medium text-foreground" : "text-muted-foreground"}`}>{c.value}</span>
             <div
-              className="viz-anim w-full max-w-6 rounded-t group-hover:brightness-110 group-focus-visible:ring-2 group-focus-visible:ring-brand-500"
-              style={{ height: `${(c.value / max) * 82}%`, minHeight: c.value > 0 ? 3 : 0, background: c.color }}
+              className="viz-anim w-full max-w-6 rounded-t-[2px]"
+              style={{ height: c.value > 0 ? `${(c.value / max) * 80}%` : 6, background: c.value === 0 ? TRACK : "var(--chart-1)" }}
             />
           </div>
         ))}
       </div>
       {/* Chỉ ghi tên cột; khoảng điểm (sub) nằm trong tooltip khi rê chuột */}
-      <div className="mt-1.5 flex gap-2">
-        {cols.map((c) => (
-          <div key={c.label} className="flex-1 truncate text-center text-xs font-medium text-slate-700">
+      <div className="mt-2 flex gap-2">
+        {cols.map((c, i) => (
+          <div key={c.label} className={`flex-1 truncate text-center text-xs ${i === active ? "font-medium text-foreground" : "text-muted-foreground"}`}>
             {c.label}
           </div>
         ))}
@@ -484,7 +505,7 @@ export function LineChart({
   return (
     <div className={fill ? "flex flex-col" : ""}>
       {series.length > 1 && (
-        <ul className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
+        <ul className="mb-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           {series.map((s) => (
             <li key={s.key} className="flex items-center gap-1.5">
               <span className="h-0.5 w-4 rounded-full" style={{ background: s.color, height: 2 }} />
@@ -498,7 +519,7 @@ export function LineChart({
         <svg
           width={width}
           height={height}
-          className={`block outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${fill ? "absolute left-0 top-0" : ""}`}
+          className={`block outline-none focus-visible:ring-2 focus-visible:ring-ring ${fill ? "absolute left-0 top-0" : ""}`}
           tabIndex={0}
           role="img"
           aria-label={`${series.map((s) => s.label).join(", ")} theo thời gian. Dùng phím mũi tên trái/phải để xem từng mốc.`}
@@ -518,8 +539,8 @@ export function LineChart({
           </defs>
           {ticks.map((t) => (
             <g key={t}>
-              <line x1={pad.l} x2={width - pad.r} y1={y(t)} y2={y(t)} stroke={t === 0 ? "var(--viz-axis)" : "var(--viz-grid)"} strokeWidth={1} />
-              <text x={pad.l - 6} y={y(t)} dy="0.32em" textAnchor="end" className="fill-slate-400 text-[10px] tabular-nums">
+              <line x1={pad.l} x2={width - pad.r} y1={y(t)} y2={y(t)} stroke={t === 0 ? AXIS : GRID} strokeWidth={1} />
+              <text x={pad.l - 6} y={y(t)} dy="0.32em" textAnchor="end" className="fill-muted-foreground text-[10px] tabular-nums">
                 {t}
                 {unit}
               </text>
@@ -527,11 +548,11 @@ export function LineChart({
           ))}
           {/* Mốc ngang: nét đứt khác kiểu cho từng mốc, tên mốc nằm ở chú giải bên dưới (không đè lên dữ liệu) */}
           {bands?.map((b, i) => (
-            <line key={b.label} x1={pad.l} x2={width - pad.r} y1={y(b.value)} y2={y(b.value)} stroke="var(--viz-target)" strokeWidth={1} strokeDasharray={i === 0 ? "4 3" : "1.5 3"} opacity={0.7} />
+            <line key={b.label} x1={pad.l} x2={width - pad.r} y1={y(b.value)} y2={y(b.value)} stroke={TARGET} strokeWidth={1} strokeDasharray={i === 0 ? "4 3" : "1.5 3"} opacity={0.7} />
           ))}
           {labels.map((l, i) =>
             i % everyN === 0 || i === labels.length - 1 ? (
-              <text key={l + i} x={x(i)} y={height - 8} textAnchor="middle" className="fill-slate-400 text-[10px]">
+              <text key={l + i} x={x(i)} y={height - 8} textAnchor="middle" className="fill-muted-foreground text-[10px]">
                 {l}
               </text>
             ) : null,
@@ -546,15 +567,15 @@ export function LineChart({
                 const lone = (s.values[i - 1] ?? null) === null && (s.values[i + 1] ?? null) === null;
                 const last = s.values.slice(i + 1).every((n) => n === null);
                 if (!lone && !last) return null;
-                return <circle key={i} cx={x(i)} cy={y(v * scale)} r={4} fill={s.color} stroke="white" strokeWidth={2} />;
+                return <circle key={i} cx={x(i)} cy={y(v * scale)} r={4} fill={s.color} stroke="var(--card)" strokeWidth={2} />;
               })}
             </g>
           ))}
           {idx !== null && (
             <g pointerEvents="none">
-              <line x1={tipX} x2={tipX} y1={pad.t} y2={pad.t + h} stroke="var(--viz-axis)" strokeWidth={1} />
+              <line x1={tipX} x2={tipX} y1={pad.t} y2={pad.t + h} stroke={AXIS} strokeWidth={1} />
               {series.map((s) =>
-                s.values[idx] === null ? null : <circle key={s.key} cx={tipX} cy={y(s.values[idx]! * scale)} r={4.5} fill={s.color} stroke="white" strokeWidth={2} />,
+                s.values[idx] === null ? null : <circle key={s.key} cx={tipX} cy={y(s.values[idx]! * scale)} r={4.5} fill={s.color} stroke="var(--card)" strokeWidth={2} />,
               )}
             </g>
           )}
@@ -562,26 +583,26 @@ export function LineChart({
         {idx !== null && (
           <div
             role="tooltip"
-            className="pointer-events-none absolute top-0 z-20 whitespace-nowrap rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-lg"
+            className="pointer-events-none absolute top-0 z-20 whitespace-nowrap rounded-[4px] border border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-md"
             style={{ left: Math.min(Math.max(tipX, 70), width - 70), transform: "translate(-50%, -4px)" }}
           >
-            <div className="mb-0.5 text-slate-500">{labels[idx]}</div>
+            <div className="mb-0.5 text-muted-foreground">{labels[idx]}</div>
             {series.map((s) => (
               <div key={s.key} className="flex items-center gap-1.5">
                 <span className="w-3 rounded-full" style={{ background: s.color, height: 2 }} />
-                <span className="font-semibold tabular-nums text-slate-900">{s.values[idx] === null ? "—" : fmt(s.values[idx]! * scale, unit)}</span>
-                {series.length > 1 && <span className="text-slate-500">{s.label}</span>}
+                <span className="font-medium tabular-nums text-foreground">{s.values[idx] === null ? "—" : fmt(s.values[idx]! * scale, unit)}</span>
+                {series.length > 1 && <span className="text-muted-foreground">{s.label}</span>}
               </div>
             ))}
           </div>
         )}
       </div>
       {bands && bands.length > 0 && (
-        <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
+        <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
           {bands.map((b, i) => (
             <li key={b.label} className="flex items-center gap-1.5">
               <svg width="16" height="4" aria-hidden>
-                <line x1="0" x2="16" y1="2" y2="2" stroke="var(--viz-target)" strokeWidth={1} strokeDasharray={i === 0 ? "4 3" : "1.5 3"} />
+                <line x1="0" x2="16" y1="2" y2="2" stroke={TARGET} strokeWidth={1} strokeDasharray={i === 0 ? "4 3" : "1.5 3"} />
               </svg>
               {b.label}
             </li>
@@ -603,14 +624,10 @@ function niceStep(raw: number) {
   return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
 }
 
-// ───────── Cột mềm: theo thời gian, cột đang chọn đậm hơn + tooltip nền tối ─────────
+// ───────── Cột theo thời gian: một chuỗi --chart-1, nhãn kỳ đang chọn in đậm, tooltip khi rê chuột / Tab ─────────
 
 /** label: nhãn ngắn dưới cột (VD "T9") · title: tên đầy đủ trong tooltip (VD "Tháng 9/2026") */
 export type SoftBar = { label: string; title?: string; value: number | null; rows?: { label: string; value: string }[] };
-
-const SOFT_IDLE = "linear-gradient(180deg, #e3e8fc 0%, #f1f3fe 100%)";
-const SOFT_ON = "linear-gradient(180deg, #7d8ff0 0%, #b3c0f7 100%)";
-const DOTS = ["#7dd3fc", "#a5b4fc", "#6366f1"];
 
 export function SoftBarChart({
   bars,
@@ -633,7 +650,8 @@ export function SoftBarChart({
   const last = bars.findLastIndex((b) => b.value !== null);
   if (last < 0) return <Empty>{emptyText}</Empty>;
   // Cột tô đậm: cột đang rê chuột, mặc định là kỳ mới nhất. Tooltip CHỈ hiện khi rê chuột / Tab tới.
-  const active = hover !== null && bars[hover].value !== null ? hover : last;
+  // bars[hover] có thể không còn (vd đổi từ 12 tháng sang 3 tháng của quý khi chuột đang ở cột cuối) → về cột mới nhất
+  const active = hover !== null && bars[hover] && bars[hover].value !== null ? hover : last;
   const top = fixedMax ?? Math.max(...bars.map((b) => b.value ?? 0), target?.value ?? 0) * 1.1;
   const pct = (v: number) => Math.max(3, Math.min(100, (v / top) * 100));
   const half = bars.length / 2;
@@ -645,7 +663,7 @@ export function SoftBarChart({
       {target && (
         <div className="flex w-7 shrink-0 flex-col" aria-hidden>
           <div className="relative flex-1">
-            <span className="absolute right-0 translate-y-1/2 text-[10px] tabular-nums leading-none text-slate-400" style={{ bottom: `${pct(target.value)}%` }}>
+            <span className="absolute right-0 translate-y-1/2 text-[10px] tabular-nums leading-none text-muted-foreground" style={{ bottom: `${pct(target.value)}%` }}>
               {fmt(target.value, unit, 0)}
             </span>
           </div>
@@ -654,10 +672,9 @@ export function SoftBarChart({
       )}
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="relative flex-1" style={{ minHeight: height }} role="group" aria-label={target ? `Vạch nét đứt: ${target.label}` : undefined}>
-          {target && <div className="pointer-events-none absolute inset-x-0 border-t border-dashed border-slate-300" style={{ bottom: `${pct(target.value)}%` }} />}
+          {target && <div className="pointer-events-none absolute inset-x-0 border-t border-dashed border-muted-foreground/50" style={{ bottom: `${pct(target.value)}%` }} />}
           <div className="absolute inset-0 flex items-end gap-1.5 sm:gap-3">
             {bars.map((b, i) => {
-              const on = i === active;
               const h = b.value === null ? 6 : pct(b.value);
               // Tooltip đặt cạnh cột (không đè lên chính cột đang xem): nửa trái → bên phải cột, nửa phải → bên trái cột
               // cột cao: mép trên tooltip ngang đỉnh cột; cột thấp: mép dưới tooltip ngang chân cột (không tràn xuống nhãn)
@@ -674,17 +691,16 @@ export function SoftBarChart({
                   onBlur={() => setHover(null)}
                 >
                   <div
-                    className={`viz-anim relative w-full max-w-11 rounded-[10px] ${b.value === null ? "bg-slate-100/70" : ""}`}
-                    style={{ height: `${h}%`, background: b.value === null ? undefined : on ? SOFT_ON : SOFT_IDLE }}
+                    className={`viz-anim relative w-full max-w-6 rounded-t-[2px] ${b.value === null ? "bg-foreground/10" : "bg-chart-1"}`}
+                    style={{ height: `${h}%` }}
                   >
                     {hover === i && b.value !== null && (
-                      <div role="tooltip" className={`pointer-events-none absolute z-20 whitespace-nowrap rounded-lg bg-slate-800/95 px-3 py-2 text-[11px] text-white shadow-lg ${side}`}>
-                        <div className="mb-1 font-medium text-slate-300">{b.title ?? b.label}</div>
-                        {(b.rows ?? [{ label: "Giá trị", value: fmt(b.value, unit) }]).map((r, k) => (
+                      <div role="tooltip" className={`pointer-events-none absolute z-20 whitespace-nowrap rounded-[4px] border border-border bg-popover px-2.5 py-1.5 text-xs text-popover-foreground shadow-md ${side}`}>
+                        <div className="mb-0.5 text-muted-foreground">{b.title ?? b.label}</div>
+                        {(b.rows ?? [{ label: "Giá trị", value: fmt(b.value, unit) }]).map((r) => (
                           <div key={r.label} className="flex items-center gap-2">
-                            <span className="size-1.5 rounded-full" style={{ background: DOTS[k % DOTS.length] }} />
-                            <span className="text-slate-300">{r.label}</span>
-                            <span className="ml-auto pl-3 font-semibold tabular-nums">{r.value}</span>
+                            <span className="text-muted-foreground">{r.label}</span>
+                            <span className="ml-auto pl-3 font-medium tabular-nums text-foreground">{r.value}</span>
                           </div>
                         ))}
                       </div>
@@ -697,7 +713,7 @@ export function SoftBarChart({
         </div>
         <div className="mt-2 flex h-4 gap-1.5 sm:gap-3">
           {bars.map((b, i) => (
-            <div key={b.label + i} className={`min-w-0 flex-1 whitespace-nowrap text-center text-[11px] leading-4 ${i === active ? "font-semibold text-slate-700" : "text-slate-400"} ${i % 2 && i !== bars.length - 1 ? "max-sm:invisible" : ""}`}>
+            <div key={b.label + i} className={`min-w-0 flex-1 whitespace-nowrap text-center text-[11px] leading-4 ${i === active ? "font-medium text-foreground" : "text-muted-foreground"} ${i % 2 && i !== bars.length - 1 ? "max-sm:invisible" : ""}`}>
               {b.label}
             </div>
           ))}
@@ -718,7 +734,7 @@ export function Gauge({ value, target, label, sub }: { value: number | null; tar
   const half = Math.PI * r;
   const v = value === null ? 0 : Math.max(0, Math.min(1, value));
   // Màu thanh theo mức: đạt mục tiêu → xanh thương hiệu, gần đạt → vàng cảnh báo, thấp → đỏ
-  const color = value === null ? "var(--viz-track)" : v >= target ? "var(--viz-1)" : v >= target - 0.2 ? "var(--st-warning)" : "var(--st-critical)";
+  const color = value === null ? TRACK : v >= target ? "var(--chart-1)" : v >= target - 0.2 ? "var(--status-warning)" : "var(--status-danger)";
   const ang = Math.PI * (1 - target);
   const tx = cx + Math.cos(ang) * r;
   const ty = cy - Math.sin(ang) * r;
@@ -726,13 +742,13 @@ export function Gauge({ value, target, label, sub }: { value: number | null; tar
   return (
     <div className="flex flex-col items-center">
       <svg width={size} height={size / 2 + 12} viewBox={`0 0 ${size} ${size / 2 + 12}`} role="img" aria-label={`${label}: ${value === null ? "chưa có" : Math.round(v * 100) + "%"}, mục tiêu ${Math.round(target * 100)}%`}>
-        <path d={arc} fill="none" stroke="var(--viz-track)" strokeWidth={stroke} strokeLinecap="round" />
+        <path d={arc} fill="none" stroke={TRACK} strokeWidth={stroke} strokeLinecap="round" />
         {value !== null && v > 0 && <path d={arc} fill="none" stroke={color} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${v * half} ${half}`} className="viz-anim" />}
-        {value !== null && <line x1={tx - Math.cos(ang) * 11} y1={ty + Math.sin(ang) * 11} x2={tx + Math.cos(ang) * 11} y2={ty - Math.sin(ang) * 11} stroke="#0f172a" strokeWidth={2.5} strokeLinecap="round" />}
+        {value !== null && <line x1={tx - Math.cos(ang) * 11} y1={ty + Math.sin(ang) * 11} x2={tx + Math.cos(ang) * 11} y2={ty - Math.sin(ang) * 11} stroke="var(--foreground)" strokeWidth={2.5} strokeLinecap="round" />}
       </svg>
-      <div className="-mt-12 text-center">
-        <div className={value === null ? "text-sm font-medium text-slate-400" : "text-3xl font-semibold text-slate-900"}>{value === null ? "Chưa có dữ liệu" : `${Number((v * 100).toFixed(1))}%`}</div>
-        <div className="text-xs text-slate-500">{label}</div>
+      <div className="-mt-6 text-center">
+        <div className={value === null ? "text-[13px] text-muted-foreground" : "text-[24px] font-medium leading-none tabular-nums text-foreground"}>{value === null ? "Chưa có dữ liệu" : `${Number((v * 100).toFixed(1))}%`}</div>
+        <div className="mt-1.5 text-xs text-muted-foreground">{label}</div>
       </div>
       {sub && <div className="mt-2">{sub}</div>}
     </div>
@@ -742,21 +758,22 @@ export function Gauge({ value, target, label, sub }: { value: number | null; tar
 // ───────── Vòng tiến độ nhỏ ─────────
 
 export function ProgressRing({ done, total, label, size = 96 }: { done: number; total: number; label: string; size?: number }) {
-  const stroke = size >= 120 ? 14 : 10;
-  const r = (size - stroke) / 2;
+  // Cùng độ dày với donut; một màu chuỗi chính (--chart-1)
+  const stroke = size >= 120 ? 16 : 10;
+  const r = (size - stroke) / 2 - (size >= 120 ? 2 : 0);
   const C = 2 * Math.PI * r;
   const f = total ? done / total : 0;
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} role="img" aria-label={`${label}: ${done}/${total}`}>
         <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--viz-track)" strokeWidth={stroke} />
-          {f > 0 && <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--st-good)" strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${f * C} ${C}`} className="viz-anim" />}
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={TRACK} strokeWidth={stroke} />
+          {f > 0 && <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--chart-1)" strokeWidth={stroke} strokeLinecap="round" strokeDasharray={`${f * C} ${C}`} className="viz-anim" />}
         </g>
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className={`font-semibold leading-none text-slate-900 ${size >= 120 ? "text-2xl" : "text-lg"}`}>{Math.round(f * 100)}%</div>
-        <div className="mt-0.5 text-[10px] tabular-nums text-slate-500">
+        <div className={`font-medium leading-none tabular-nums text-foreground ${size >= 120 ? "text-[22px]" : "text-lg"}`}>{Math.round(f * 100)}%</div>
+        <div className="mt-0.5 text-[11px] tabular-nums text-muted-foreground">
           {done}/{total}
         </div>
       </div>

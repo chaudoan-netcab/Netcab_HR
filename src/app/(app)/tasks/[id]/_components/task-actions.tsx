@@ -1,7 +1,7 @@
 "use client";
 // Nút hành động chính ở đầu trang, đổi theo vai trò + trạng thái. Quyền vẫn do server kiểm tra (moveTask).
 import { useState } from "react";
-import { CheckCircle2, CornerUpLeft, Hourglass, Play, Send } from "lucide-react";
+import { CheckCircle2, CornerUpLeft, Play, Send } from "lucide-react";
 import { SubmitButton } from "@/components/modal";
 import { ApproveDialog } from "./approve-dialog";
 import { ReportDialog } from "./report-dialog";
@@ -32,10 +32,10 @@ export function TaskActions({
   if (mode === "none") return null;
   if (mode === "waiting")
     return (
-      <p className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 ring-1 ring-amber-200">
-        <Hourglass size={15} className="shrink-0" aria-hidden />
+      <p className="flex items-center gap-2 text-[13px] text-status-warning-text">
+        <span className="size-2 shrink-0 rounded-full bg-status-warning" aria-hidden />
         <span>
-          Đang chờ <b className="font-semibold">{giver}</b> xác nhận
+          Đang chờ <b className="font-medium">{giver}</b> xác nhận
         </span>
       </p>
     );

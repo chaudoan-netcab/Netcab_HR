@@ -43,8 +43,8 @@ export default async function UnitTrackingPage({ params, searchParams }: { param
           .filter(Boolean)
           .join(" · ")}
       />
-      <p className="mb-4 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-600">
-        <Info size={15} className="shrink-0 text-slate-400" aria-hidden /> Nhắc nhân viên qua Trưởng phòng.
+      <p className="card mb-4 flex items-center gap-2 px-4 py-2.5 text-[13px] text-muted-foreground">
+        <Info size={15} className="shrink-0" aria-hidden /> Nhắc nhân viên qua Trưởng phòng.
       </p>
       <TrackingBoard
         rows={members}

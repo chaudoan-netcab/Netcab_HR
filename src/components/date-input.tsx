@@ -122,7 +122,7 @@ export function DateInput({
             p.focus();
           }
         }}
-        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-slate-400 hover:text-brand-600"
+        className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-[4px] text-muted-foreground hover:text-foreground"
         aria-label="Chọn ngày trên lịch"
       >
         <CalendarDays size={16} aria-hidden />

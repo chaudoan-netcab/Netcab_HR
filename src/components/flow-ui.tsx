@@ -3,31 +3,36 @@ import { fmtDateTime } from "@/lib/dates";
 import type { LogEntry } from "@/lib/server/demo-store";
 
 export function FlowLog({ log }: { log: LogEntry[] }) {
-  if (log.length === 0) return <p className="text-sm text-slate-400">Chưa có thao tác nào.</p>;
+  if (log.length === 0) return <p className="text-sm text-muted-foreground">Chưa có thao tác nào.</p>;
   return (
-    <ol className="flex flex-col gap-2 text-sm">
+    <ol className="ml-1 flex flex-col gap-3 border-l border-border pl-4 text-sm">
       {[...log].reverse().map((l, i) => (
-        <li key={i} className="border-l-2 border-slate-200 pl-3">
-          <div className="font-medium text-slate-800">{l.action}</div>
-          <div className="text-xs text-slate-500">
+        <li key={i} className="relative">
+          <span className="absolute -left-[21px] top-1.5 size-2 rounded-full bg-status-neutral" aria-hidden />
+          <div className="text-foreground">{l.action}</div>
+          <div className="text-xs text-muted-foreground">
             {l.by} · {fmtDateTime(new Date(l.at))}
           </div>
-          {l.note && <div className="mt-0.5 text-xs text-slate-600">“{l.note}”</div>}
+          {l.note && <div className="mt-0.5 text-xs italic text-muted-foreground">“{l.note}”</div>}
         </li>
       ))}
     </ol>
   );
 }
 
-/** Form Duyệt / Trả lại — trả lại bắt buộc có lý do (kiểm tra ở server) */
+/** Công tắc phạm vi dữ liệu: Phòng tôi / Toàn công ty */
 export function ViewToggle({ company, hrefMine, hrefCompany }: { company: boolean; hrefMine: string; hrefCompany: string }) {
   const item = (active: boolean, href: string, label: string) => (
-    <a href={href} aria-current={active ? "true" : undefined} className={`rounded-md px-3 py-1.5 text-sm no-underline hover:no-underline ${active ? "bg-white font-semibold text-brand-700 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}>
+    <a
+      href={href}
+      aria-current={active ? "true" : undefined}
+      className={`inline-flex h-7 items-center whitespace-nowrap rounded-[4px] px-3 text-[13px] no-underline hover:no-underline ${active ? "bg-card font-medium text-primary-text" : "text-muted-foreground hover:text-foreground"}`}
+    >
       {label}
     </a>
   );
   return (
-    <nav aria-label="Phạm vi dữ liệu" className="inline-flex rounded-lg bg-slate-100 p-1">
+    <nav aria-label="Phạm vi dữ liệu" className="inline-flex rounded-[4px] bg-muted p-0.5 dark:border dark:border-border">
       {item(!company, hrefMine, "Phòng tôi")}
       {item(company, hrefCompany, "Toàn công ty")}
     </nav>
@@ -51,5 +56,5 @@ export function QuarterPicker({ value, options, extra }: { value: string; option
 
 /** Ghi chú "lưu tạm" cho các chức năng giai đoạn chỉ làm UI */
 export function DemoNote({ children }: { children: React.ReactNode }) {
-  return <p className="mt-3 text-xs text-slate-400">{children}</p>;
+  return <p className="mt-3 text-xs text-muted-foreground">{children}</p>;
 }

@@ -29,11 +29,11 @@ export function TaskManage({
 
   return (
     <>
-      <div className="no-print grid grid-cols-2 gap-2 border-t border-slate-100 px-5 py-3">
-        <button type="button" onClick={() => setOpen("edit")} className="btn btn-sm justify-center py-2">
+      <div className="no-print grid grid-cols-2 gap-2 border-t border-border px-5 py-3 max-md:px-3">
+        <button type="button" onClick={() => setOpen("edit")} className="btn">
           <Pencil size={14} aria-hidden /> Sửa nhiệm vụ
         </button>
-        <button type="button" onClick={() => setOpen("cancel")} className="btn btn-sm justify-center py-2 text-red-600 hover:bg-red-50">
+        <button type="button" onClick={() => setOpen("cancel")} className="btn btn-danger">
           <Ban size={14} aria-hidden /> Hủy nhiệm vụ
         </button>
       </div>
@@ -81,7 +81,7 @@ export function TaskManage({
             </>
           }
         >
-          <p className="mb-3 text-sm text-slate-600">Nhiệm vụ sẽ chuyển sang <b>Đã hủy</b> và không thao tác tiếp được. Người thực hiện vẫn xem được nhật ký.</p>
+          <p className="mb-4 text-[13px] text-muted-foreground">Nhiệm vụ sẽ chuyển sang <b className="font-medium text-foreground">Đã hủy</b> và không thao tác tiếp được. Người thực hiện vẫn xem được nhật ký.</p>
           <label className="block">
             <span className="label">Lý do hủy (không bắt buộc)</span>
             <textarea name="note" rows={3} className="input" placeholder="VD: Không còn cần thiết, đã gộp vào nhiệm vụ khác" />

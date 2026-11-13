@@ -21,7 +21,7 @@ export function ImportFlow({ months, defaultMonth }: { months: { value: string; 
   const [pending, start] = useTransition();
 
   if (months.length === 0)
-    return <p className="text-sm text-slate-500">Chưa đến tháng bắt đầu áp dụng import chấm công. Thời điểm bắt đầu đặt trong cấu hình ATTENDANCE_START_MONTH.</p>;
+    return <p className="text-[13px] text-muted-foreground">Chưa đến tháng bắt đầu áp dụng import chấm công. Thời điểm bắt đầu đặt trong cấu hình ATTENDANCE_START_MONTH.</p>;
 
   const check = (fd: FormData) => {
     setError(null);
@@ -65,12 +65,16 @@ export function ImportFlow({ months, defaultMonth }: { months: { value: string; 
           <span className="label">File xuất từ FastWork (.xlsx, .xls, .csv)</span>
           <input ref={fileRef} type="file" name="file" accept=".xlsx,.xls,.csv" required className="input py-1.5" />
         </label>
-        <button className="btn btn-primary" disabled={pending}>{pending && !result ? "Đang kiểm tra…" : "Kiểm tra file"}</button>
+        <button className={result ? "btn" : "btn btn-primary"} disabled={pending}>{pending && !result ? "Đang kiểm tra…" : "Kiểm tra file"}</button>
       </form>
 
-      {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {error && (
+        <p role="alert" className="flex items-start gap-2 text-[13px] text-status-danger-text">
+          <XCircle size={16} className="mt-0.5 shrink-0" aria-hidden /> {error}
+        </p>
+      )}
       {done && (
-        <p role="status" className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+        <p role="status" className="flex items-center gap-2 text-[13px] text-status-success-text">
           <CheckCircle2 size={16} aria-hidden /> {done}
         </p>
       )}
@@ -78,17 +82,17 @@ export function ImportFlow({ months, defaultMonth }: { months: { value: string; 
       {result && (
         <div className="flex flex-col gap-4">
           <div>
-            <h3 className="mb-1 text-sm font-semibold text-slate-800">Kết quả kiểm tra · {result.fileName} · {result.monthLabel}</h3>
-            <p className="mb-2 text-sm text-slate-600">
-              Thời gian xuất (dòng 2 của file): <b className="tabular-nums">{result.exportedAtLabel}</b>{!result.exportedFromFile && <span className="text-xs text-slate-400"> · dữ liệu mẫu</span>}
+            <h3 className="section-title mb-1">Kết quả kiểm tra · {result.fileName} · {result.monthLabel}</h3>
+            <p className="mb-2 text-[13px] text-muted-foreground">
+              Thời gian xuất (dòng 2 của file): <b className="font-medium tabular-nums text-foreground">{result.exportedAtLabel}</b>{!result.exportedFromFile && <span className="text-xs"> · dữ liệu mẫu</span>}
             </p>
             <ul className="flex flex-col gap-2">
               {result.checks.map((c) => (
-                <li key={c.title} className="flex items-start gap-2 text-sm">
-                  {c.level === "ok" ? <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-emerald-600" aria-label="Đạt" /> : c.level === "warning" ? <AlertTriangle size={16} className="mt-0.5 shrink-0 text-amber-600" aria-label="Cảnh báo" /> : <XCircle size={16} className="mt-0.5 shrink-0 text-red-600" aria-label="Lỗi" />}
+                <li key={c.title} className="flex items-start gap-2 text-[13px]">
+                  {c.level === "ok" ? <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-status-success-text" aria-label="Đạt" /> : c.level === "warning" ? <AlertTriangle size={16} className="mt-0.5 shrink-0 text-status-warning-text" aria-label="Cảnh báo" /> : <XCircle size={16} className="mt-0.5 shrink-0 text-status-danger-text" aria-label="Lỗi" />}
                   <span>
-                    <span className="font-medium text-slate-800">{c.title}</span>
-                    <span className="block text-xs text-slate-500">{c.detail}</span>
+                    <span className="font-medium text-foreground">{c.title}</span>
+                    <span className="block text-xs text-muted-foreground">{c.detail}</span>
                   </span>
                 </li>
               ))}
@@ -96,9 +100,9 @@ export function ImportFlow({ months, defaultMonth }: { months: { value: string; 
           </div>
 
           <div>
-            <h3 className="mb-2 text-sm font-semibold text-slate-800">Xem trước ({result.preview.length} dòng)</h3>
-            <div className="max-h-80 overflow-auto rounded-lg border border-slate-200">
-              <table className="table">
+            <h3 className="section-title mb-2">Xem trước ({result.preview.length} dòng)</h3>
+            <div className="max-h-80 overflow-auto rounded-[4px] border border-border">
+              <table className="table max-md:hidden">
                 <thead>
                   <tr>
                     <th>MSNV</th>
@@ -112,21 +116,21 @@ export function ImportFlow({ months, defaultMonth }: { months: { value: string; 
                 </thead>
                 <tbody>
                   {result.preview.map((r, i) => (
-                    <tr key={i} className={r.matched ? (r.fromFile ? "bg-brand-50/40" : "") : "bg-amber-50/60"}>
-                      <td className="tabular-nums">{r.code}</td>
+                    <tr key={i} className={r.matched && r.fromFile ? "bg-accent/60" : ""}>
+                      <td className="text-xs tabular-nums text-muted-foreground">{r.code}</td>
                       <td>
                         {r.name}
-                        <span className="block text-xs text-slate-500">
+                        <span className="block text-xs text-muted-foreground">
                           {r.department}
-                          {!r.matched && <span className="text-amber-700"> · không khớp, bỏ qua</span>}
-                          {r.fromFile && <span className="text-brand-600"> · số liệu từ file</span>}
+                          {!r.matched && <span className="text-status-warning-text"> · không khớp, bỏ qua</span>}
+                          {r.fromFile && <span className="text-primary-text"> · số liệu từ file</span>}
                         </span>
                       </td>
                       <td className="text-right tabular-nums">{vn(r.days)}</td>
                       <td className="text-right tabular-nums">{vn(r.hours)}</td>
                       <td className="text-right tabular-nums">
                         {r.lateCount} lần
-                        {r.lateMinutes > 0 && <span className="block text-xs text-slate-500">{r.lateMinutes} phút</span>}
+                        {r.lateMinutes > 0 && <span className="block text-xs text-muted-foreground">{r.lateMinutes} phút</span>}
                       </td>
                       <td className="text-right tabular-nums">{r.earlyCount} lần</td>
                       <td className="text-right tabular-nums">{vn(r.leave)}</td>
@@ -134,8 +138,31 @@ export function ImportFlow({ months, defaultMonth }: { months: { value: string; 
                   ))}
                 </tbody>
               </table>
+              {/* Điện thoại: danh sách xếp chồng, cùng dữ liệu với bảng */}
+              <ul className="divide-y divide-border md:hidden">
+                {result.preview.map((r, i) => (
+                  <li key={i} className={`px-3 py-2.5 ${r.matched && r.fromFile ? "bg-accent/60" : ""}`}>
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="text-[14px] font-medium text-foreground">{r.name}</span>
+                      <span className="text-xs tabular-nums text-muted-foreground">{r.code}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {r.department}
+                      {!r.matched && <span className="text-status-warning-text"> · không khớp, bỏ qua</span>}
+                      {r.fromFile && <span className="text-primary-text"> · số liệu từ file</span>}
+                    </div>
+                    <dl className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-[13px] tabular-nums">
+                      <div><dt className="inline text-muted-foreground">Số công:</dt> <dd className="inline">{vn(r.days)}</dd></div>
+                      <div><dt className="inline text-muted-foreground">Số giờ:</dt> <dd className="inline">{vn(r.hours)}</dd></div>
+                      <div><dt className="inline text-muted-foreground">Đi muộn:</dt> <dd className="inline">{r.lateCount} lần{r.lateMinutes > 0 && ` (${r.lateMinutes} phút)`}</dd></div>
+                      <div><dt className="inline text-muted-foreground">Về sớm:</dt> <dd className="inline">{r.earlyCount} lần</dd></div>
+                      <div><dt className="inline text-muted-foreground">Nghỉ phép:</dt> <dd className="inline">{vn(r.leave)}</dd></div>
+                    </dl>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-muted-foreground">
               Khớp nhân viên theo Họ tên + Phòng ban (file FastWork không có cột Email). Dòng tô xanh: số liệu thật của phòng HCNS từ file bảng công tháng 10/2026; các dòng khác là số mẫu — hệ thống chưa đọc nội dung file.
             </p>
           </div>
@@ -147,7 +174,7 @@ export function ImportFlow({ months, defaultMonth }: { months: { value: string; 
             </label>
           )}
           <div className="flex flex-wrap items-center justify-end gap-3">
-            {result.blocked && <span className="text-sm text-red-700">Sửa các lỗi ở trên rồi kiểm tra lại.</span>}
+            {result.blocked && <span className="text-[13px] text-status-danger-text">Sửa các lỗi ở trên rồi kiểm tra lại.</span>}
             <button type="button" onClick={() => setResult(null)} className="btn">Hủy</button>
             <button type="button" onClick={commit} disabled={pending || result.blocked || (needReason && !reason.trim())} className="btn btn-primary">
               {needReason ? "Import lại và khóa" : "Xác nhận và khóa"}

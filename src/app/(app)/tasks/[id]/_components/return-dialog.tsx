@@ -20,12 +20,12 @@ export function ReturnDialog({ taskTitle, assignee, action, onClose }: { taskTit
         </>
       }
     >
-      <p className="mb-3 text-sm text-slate-600">
-        Nhiệm vụ sẽ quay về <b>Đang làm</b>. {assignee} sẽ thấy lý do và báo cáo lại.
+      <p className="mb-4 text-[13px] text-muted-foreground">
+        Nhiệm vụ sẽ quay về <b className="font-medium text-foreground">Đang làm</b>. {assignee} sẽ thấy lý do và báo cáo lại.
       </p>
       <label className="block">
         <span className="label">
-          Lý do trả lại <span className="text-red-600">*</span>
+          Lý do trả lại <span className="text-status-danger-text">*</span>
         </span>
         <textarea name="note" required rows={4} className="input min-h-28" placeholder="Phần nào chưa đạt, cần bổ sung hoặc làm lại gì" />
       </label>

@@ -54,12 +54,12 @@ export function Sidebar({ caps, collapsed = false }: { caps: Caps; collapsed?: b
   // Mục đang mở = mục khớp dài nhất (vd /kpi/sets không làm sáng /kpi)
   const activeHref = groups.flatMap((g) => g.items.map((i) => i.href)).filter((h) => matches(h, pathname)).sort((a, b) => b.length - a.length)[0];
   return (
-    <nav className={`flex flex-col gap-4 py-4 ${collapsed ? "px-2.5" : "px-3"}`} aria-label="Menu chính">
+    <nav className="flex flex-col gap-4 py-4" aria-label="Menu chính">
       {groups.map((g, gi) => {
         const items = g.items;
         return (
           <div key={gi}>
-            {g.title && (collapsed ? <div className="mx-2 mb-2 h-px bg-slate-200" aria-hidden /> : <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{g.title}</div>)}
+            {g.title && (collapsed ? <div className="mx-4 mb-2 h-px bg-border" aria-hidden /> : <div className="pb-1.5 pl-[27px] pr-3 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">{g.title}</div>)}
             <ul className="flex flex-col gap-0.5">
               {items.map((i) => {
                 const active = i.href === activeHref;
@@ -71,11 +71,11 @@ export function Sidebar({ caps, collapsed = false }: { caps: Caps; collapsed?: b
                       aria-current={active ? "page" : undefined}
                       title={collapsed ? i.label : undefined}
                       aria-label={collapsed ? i.label : undefined}
-                      className={`flex items-center rounded-lg py-2.5 text-sm no-underline hover:no-underline ${collapsed ? "justify-center px-0" : "gap-3 px-3"} ${
-                        active ? "bg-brand-50 font-semibold text-brand-600" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                      className={`mx-2 flex items-center rounded-[4px] py-2 text-[13px] no-underline hover:no-underline ${collapsed ? "justify-center px-0" : "gap-3 pl-[19px] pr-3"} ${
+                        active ? "bg-primary/10 font-medium text-primary-text" : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
                       }`}
                     >
-                      <Icon size={18} strokeWidth={active ? 2.2 : 1.8} className="shrink-0" />
+                      <Icon className="size-4 shrink-0" aria-hidden />
                       {!collapsed && <span className="truncate">{i.label}</span>}
                     </Link>
                   </li>
@@ -93,5 +93,5 @@ export function Sidebar({ caps, collapsed = false }: { caps: Caps; collapsed?: b
 export function TopbarTitle() {
   const pathname = usePathname();
   const hit = SECTION_TITLES.filter(([href]) => matches(href, pathname)).sort((a, b) => b[0].length - a[0].length)[0];
-  return <span className="truncate text-sm font-semibold text-brand-900">{hit?.[1] ?? "Netcab HR"}</span>;
+  return <span className="truncate text-[14px] font-medium text-foreground">{hit?.[1] ?? "Netcab HR"}</span>;
 }

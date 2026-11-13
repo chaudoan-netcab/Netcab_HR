@@ -13,13 +13,14 @@ import type {
 
 export type Tone = "gray" | "blue" | "green" | "amber" | "red" | "violet";
 
+/** Trạng thái hiển thị bằng chữ nhỏ có màu (NETCAB): xanh lá ổn · vàng chờ/rủi ro · đỏ trễ/lỗi · xanh dương đang làm · xám chưa bắt đầu */
 export const toneClass: Record<Tone, string> = {
-  gray: "bg-slate-100 text-slate-700",
-  blue: "bg-brand-50 text-brand-700",
-  green: "bg-emerald-50 text-emerald-700",
-  amber: "bg-amber-50 text-amber-700",
-  red: "bg-red-50 text-red-700",
-  violet: "bg-violet-50 text-violet-700",
+  gray: "text-status-neutral-text",
+  blue: "text-status-info-text",
+  green: "text-status-success-text",
+  amber: "text-status-warning-text",
+  red: "text-status-danger-text",
+  violet: "text-primary-text",
 };
 
 export const roleLabel: Record<Role, string> = {
@@ -122,4 +123,4 @@ export function kpiStatusView(s: KpiStatus, locked: boolean): { label: string; t
 
 /** Bản cuối KPI quý của phòng (trưởng phòng gửi HR, HR không duyệt) — lưu tạm trong bộ nhớ server */
 export const summaryStatusLabel = { NONE: "Chưa gửi", SENT: "Đã gửi HR", REOPENED: "Cần gửi lại" } as const;
-export const summaryStatusTone: Record<keyof typeof summaryStatusLabel, Tone> = { NONE: "gray", SENT: "green", REOPENED: "violet" };
+export const summaryStatusTone: Record<keyof typeof summaryStatusLabel, Tone> = { NONE: "gray", SENT: "green", REOPENED: "amber" };

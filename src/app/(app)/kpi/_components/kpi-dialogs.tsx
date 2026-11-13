@@ -59,20 +59,20 @@ export function AssignKpiDialog({
             <fieldset>
               <div className="mb-1 flex items-center justify-between gap-2">
                 <legend className="label mb-0">Giao cho</legend>
-                <button type="button" onClick={() => setPicked(all ? [] : employees.map((e) => e.id))} className="text-xs font-medium text-brand-600 hover:underline">
+                <button type="button" onClick={() => setPicked(all ? [] : employees.map((e) => e.id))} className="text-xs font-medium text-primary-text hover:underline">
                   {all ? "Bỏ chọn tất cả" : "Chọn cả phòng"}
                 </button>
               </div>
-              <div className="max-h-40 overflow-y-auto rounded-lg border border-slate-200">
+              <div className="max-h-40 overflow-y-auto rounded-[4px] border border-border">
                 {employees.map((e) => (
-                  <label key={e.id} className="flex cursor-pointer items-center gap-2 border-b border-slate-100 px-3 py-2 text-sm last:border-b-0 hover:bg-slate-50">
-                    <input type="checkbox" name="employeeId" value={e.id} checked={picked.includes(e.id)} onChange={() => toggle(e.id)} className="h-4 w-4 accent-brand-600" />
+                  <label key={e.id} className="flex cursor-pointer items-center gap-2 border-b border-border px-3 py-2 text-sm last:border-b-0 hover:bg-muted/60">
+                    <input type="checkbox" name="employeeId" value={e.id} checked={picked.includes(e.id)} onChange={() => toggle(e.id)} className="h-4 w-4 accent-primary" />
                     <span className="min-w-0 flex-1">{e.fullName}</span>
-                    <span className="text-xs text-slate-400">{e.code}</span>
+                    <span className="text-xs text-muted-foreground">{e.code}</span>
                   </label>
                 ))}
               </div>
-              <p className="mt-1 text-xs text-slate-500">{picked.length > 1 ? `${picked.length} người nhận cùng bộ chỉ số bên dưới` : "Chọn nhiều người để giao cùng một bộ chỉ số"}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{picked.length > 1 ? `${picked.length} người nhận cùng bộ chỉ số bên dưới` : "Chọn nhiều người để giao cùng một bộ chỉ số"}</p>
             </fieldset>
             <label>
               <span className="label">Bộ KPI gốc của phòng</span>
@@ -106,11 +106,11 @@ export function AssignKpiDialog({
           </div>
 
           <div className="mt-5 mb-2 flex flex-wrap items-baseline justify-between gap-2">
-            <h3 className="text-sm font-semibold text-slate-800">{picked.length > 1 ? "Chỉ số đánh giá (áp dụng cho tất cả người đã chọn)" : "Chỉ số đánh giá của người này"}</h3>
-            <span className="text-xs text-slate-500">Bỏ chọn chỉ số không áp dụng · sửa chỉ tiêu, tỉ trọng nếu cần</span>
+            <h3 className="text-sm font-semibold text-foreground">{picked.length > 1 ? "Chỉ số đánh giá (áp dụng cho tất cả người đã chọn)" : "Chỉ số đánh giá của người này"}</h3>
+            <span className="text-xs text-muted-foreground">Bỏ chọn chỉ số không áp dụng · sửa chỉ tiêu, tỉ trọng nếu cần</span>
           </div>
           <PlanItemsEditor state={state} />
-          <p className="mt-2 text-xs text-slate-500">Chỉ số được sao chép vào phiếu. Sửa bộ KPI của phòng sau này không làm thay đổi phiếu đã giao.</p>
+          <p className="mt-2 text-xs text-muted-foreground">Chỉ số được sao chép vào phiếu. Sửa bộ KPI của phòng sau này không làm thay đổi phiếu đã giao.</p>
         </Modal>
       )}
     </>

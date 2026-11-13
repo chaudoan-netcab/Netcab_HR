@@ -5,7 +5,7 @@ import { getSummary, loadKpiSets, loadSummary, parseYq } from "@/lib/server/depa
 import { demo, summaryKey } from "@/lib/server/demo-store";
 import { db } from "@/lib/server/db";
 import { inQuarter, isApprovedPlan, kpiGrade, pct, periodRange, provisionalKpi } from "@/lib/kpi";
-import { kpiStatusView, summaryStatusLabel, summaryStatusTone } from "@/lib/labels";
+import { kpiStatusView, summaryStatusLabel, summaryStatusTone, type Tone } from "@/lib/labels";
 import { fmtDate, fmtDateTime, today } from "@/lib/dates";
 import { Badge, Card, EmptyState, Flash, PageHeader, StatTile } from "@/components/ui";
 import { DemoNote, QuarterPicker } from "@/components/flow-ui";
@@ -55,6 +55,56 @@ export default async function HeadsPage({ searchParams }: { searchParams: Promis
   const sent = rows.filter((r) => r.status === "SENT").length;
   const waiting = rows.filter((r) => r.status !== "SENT" && r.unit.headId);
 
+  /** Xếp loại là phân loại: chữ thường; chỉ tô màu khi báo cần chú ý (vàng/đỏ) */
+  const gradeText = (tone: Tone) => (tone === "red" ? "text-status-danger-text" : tone === "amber" ? "text-status-warning-text" : "text-foreground");
+  type Row = (typeof rows)[number];
+  const headLine = (r: Row, own: boolean) =>
+    r.unit.headName ? (
+      <>
+        <Link href={`/employees/${r.unit.headId}`} className="text-muted-foreground hover:text-foreground">{r.unit.headName}</Link>
+        {r.position && ` · ${r.position}`}
+        {own && " (bạn)"}
+      </>
+    ) : (
+      <span className="text-status-warning-text">Chưa có trưởng phòng</span>
+    );
+  const headKpi = (r: Row) => {
+    const g = kpiGrade(r.headKpi);
+    return !r.headPlan ? (
+      <span className="text-xs text-muted-foreground">Chưa có phiếu quý</span>
+    ) : (
+      <Link href={`/kpi/${r.headPlan.id}`} className="block text-foreground hover:no-underline">
+        <span className="font-medium tabular-nums text-foreground">{pct(r.headKpi)}</span>
+        {g && <span className={`ml-2 whitespace-nowrap text-xs ${gradeText(g.tone)}`}>{g.label}</span>}
+        <div className="mt-0.5 text-xs text-muted-foreground">{kpiStatusView(r.headPlan.status, false).label}{!isApprovedPlan(r.headPlan.status) && " · tạm tính"}</div>
+      </Link>
+    );
+  };
+  const staff = (r: Row) =>
+    r.staffTotal === 0 ? (
+      <span className="text-xs text-muted-foreground">Chưa giao phiếu</span>
+    ) : (
+      <>
+        <span className="font-medium tabular-nums">{r.staffDone}/{r.staffTotal}</span> <span className="text-xs text-muted-foreground">đã xác nhận</span>
+        {r.staffDone < r.staffTotal && <div className="text-xs text-status-warning-text">{r.staffTotal - r.staffDone} phiếu đang cập nhật / chờ xác nhận</div>}
+      </>
+    );
+  const summary = (r: Row, detail: boolean) => (
+    <>
+      <Badge tone={summaryStatusTone[r.status]}>{summaryStatusLabel[r.status]}</Badge>
+      {detail && r.rec && <div className="mt-0.5 whitespace-nowrap text-xs tabular-nums text-muted-foreground">{fmtDateTime(new Date(r.rec.sentAt))}</div>}
+      {detail && r.status === "NONE" && ended && <div className="mt-0.5 text-xs text-status-danger-text">Quá hạn (hết quý {fmtDate(quarterEnd)})</div>}
+      {detail && r.reminder && r.status !== "SENT" && <div className="mt-0.5 text-xs text-muted-foreground">Đã nhắc {fmtDateTime(new Date(r.reminder.at))}</div>}
+    </>
+  );
+  const action = (r: Row, own: boolean) =>
+    r.status !== "SENT" && r.unit.headId && !own ? (
+      <form action={remindHead.bind(null, r.unit.id, q.value)}>
+        <button className="btn btn-sm"><BellRing size={14} /> Nhắc gửi</button>
+      </form>
+    ) : (
+      <Link href={`/kpi/summary/${r.unit.id}?yq=${q.value}`} className="btn btn-sm">Xem bản cuối</Link>
+    );
   return (
     <div>
       <PageHeader
@@ -71,87 +121,73 @@ export default async function HeadsPage({ searchParams }: { searchParams: Promis
         <StatTile label="Bộ KPI đang dùng" value={sets.filter((x) => x.template.active && x.rec.unitId).length} hint="Do các trưởng phòng tự soạn" />
       </div>
 
-      <Card title={`Các phòng · ${q.label}`} pad={false}>
+      <Card title={`Các phòng · ${q.label}`} pad={false} className={rows.length ? "max-md:border-0 max-md:bg-transparent max-md:[&>div:first-child]:px-0" : ""}>
         {rows.length === 0 ? (
           <EmptyState title="Chưa có phòng ban" />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="table min-w-[980px]">
-              <thead>
-                <tr>
-                  <th>Phòng · Trưởng phòng</th>
-                  <th>KPI của trưởng phòng</th>
-                  <th>Phiếu KPI nhân viên</th>
-                  <th>Bộ KPI</th>
-                  <th>Bản cuối gửi HR</th>
-                  <th className="w-40" />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => {
-                  const g = kpiGrade(r.headKpi);
-                  const own = r.unit.headId === user.employeeId;
-                  return (
-                    <tr key={r.unit.id}>
-                      <td>
-                        <Link href={`/kpi/summary/${r.unit.id}?yq=${q.value}`} className="font-medium">{r.unit.name}</Link>
-                        <div className="text-xs text-slate-500">
-                          {r.unit.headName ? (
-                            <>
-                              <Link href={`/employees/${r.unit.headId}`} className="text-slate-600">{r.unit.headName}</Link>
-                              {r.position && ` · ${r.position}`}
-                              {own && " (bạn)"}
-                            </>
-                          ) : (
-                            <span className="text-red-600">Chưa có trưởng phòng</span>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        {!r.headPlan ? (
-                          <span className="text-xs text-slate-400">Chưa có phiếu quý</span>
-                        ) : (
-                          <Link href={`/kpi/${r.headPlan.id}`} className="block hover:no-underline">
-                            <span className="font-semibold tabular-nums text-slate-900">{pct(r.headKpi)}</span>
-                            {g && <span className="ml-2"><Badge tone={g.tone}>{g.label}</Badge></span>}
-                            <div className="mt-0.5 text-xs text-slate-500">{kpiStatusView(r.headPlan.status, false).label}{!isApprovedPlan(r.headPlan.status) && " · tạm tính"}</div>
-                          </Link>
+          <>
+            <div className="hidden overflow-x-auto md:block">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Phòng · Trưởng phòng</th>
+                    <th>KPI của trưởng phòng</th>
+                    <th>Phiếu KPI nhân viên</th>
+                    <th className="hidden xl:table-cell">Bộ KPI</th>
+                    <th>Bản cuối gửi HR</th>
+                    <th className="w-32"><span className="sr-only">Thao tác</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => {
+                    const own = r.unit.headId === user.employeeId;
+                    return (
+                      <tr key={r.unit.id}>
+                        <td>
+                          <Link href={`/kpi/summary/${r.unit.id}?yq=${q.value}`} className="font-medium">{r.unit.name}</Link>
+                          <div className="text-xs text-muted-foreground">{headLine(r, own)}</div>
+                        </td>
+                        <td>{headKpi(r)}</td>
+                        <td>{staff(r)}</td>
+                        <td className="hidden xl:table-cell">
+                          <Link href="/kpi/sets" className="text-sm">{r.sets} bộ</Link>
+                        </td>
+                        <td>{summary(r, true)}</td>
+                        <td className="text-right">{action(r, own)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Điện thoại: danh sách thẻ, cùng dữ liệu với bảng */}
+            <ul className="space-y-3 md:hidden">
+              {rows.map((r) => {
+                const own = r.unit.headId === user.employeeId;
+                return (
+                  <li key={r.unit.id}>
+                    <article className="rounded-[6px] border border-border bg-card p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="min-w-0 truncate text-xs text-muted-foreground">{headLine(r, own)}</span>
+                        {summary(r, false)}
+                      </div>
+                      <Link href={`/kpi/summary/${r.unit.id}?yq=${q.value}`} className="mt-0.5 block text-[14px] font-medium text-foreground">{r.unit.name}</Link>
+                      <dl className="mt-2 flex flex-col gap-y-1.5 text-[13px]">
+                        <div><dt className="text-xs text-muted-foreground">KPI của trưởng phòng</dt><dd>{headKpi(r)}</dd></div>
+                        <div><dt className="text-xs text-muted-foreground">Phiếu KPI nhân viên</dt><dd>{staff(r)}</dd></div>
+                        <div><dt className="inline text-muted-foreground">Bộ KPI:</dt> <dd className="inline"><Link href="/kpi/sets">{r.sets} bộ</Link></dd></div>
+                        {(r.rec || (r.status === "NONE" && ended) || (r.reminder && r.status !== "SENT")) && (
+                          <div><dt className="text-xs text-muted-foreground">Bản cuối gửi HR</dt><dd>{summary(r, true)}</dd></div>
                         )}
-                      </td>
-                      <td>
-                        {r.staffTotal === 0 ? (
-                          <span className="text-xs text-slate-400">Chưa giao phiếu</span>
-                        ) : (
-                          <>
-                            <span className="tabular-nums font-medium">{r.staffDone}/{r.staffTotal}</span> <span className="text-xs text-slate-500">đã xác nhận</span>
-                            {r.staffDone < r.staffTotal && <div className="text-xs text-amber-700">{r.staffTotal - r.staffDone} phiếu đang cập nhật / chờ xác nhận</div>}
-                          </>
-                        )}
-                      </td>
-                      <td>
-                        <Link href="/kpi/sets" className="text-sm">{r.sets} bộ</Link>
-                      </td>
-                      <td>
-                        <Badge tone={summaryStatusTone[r.status]}>{summaryStatusLabel[r.status]}</Badge>
-                        {r.rec && <div className="mt-0.5 text-xs text-slate-500">{fmtDateTime(new Date(r.rec.sentAt))}</div>}
-                        {r.status === "NONE" && ended && <div className="mt-0.5 text-xs text-red-600">Quá hạn (hết quý {fmtDate(quarterEnd)})</div>}
-                        {r.reminder && r.status !== "SENT" && <div className="mt-0.5 text-xs text-amber-700">Đã nhắc {fmtDateTime(new Date(r.reminder.at))}</div>}
-                      </td>
-                      <td className="text-right">
-                        {r.status !== "SENT" && r.unit.headId && !own ? (
-                          <form action={remindHead.bind(null, r.unit.id, q.value)}>
-                            <button className="btn btn-sm"><BellRing size={14} /> Nhắc gửi</button>
-                          </form>
-                        ) : (
-                          <Link href={`/kpi/summary/${r.unit.id}?yq=${q.value}`} className="btn btn-sm">Xem bản cuối</Link>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </dl>
+                      <div className="mt-3 flex gap-2">{action(r, own)}</div>
+                    </article>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
         )}
       </Card>
       <DemoNote>Trạng thái gửi và lời nhắc đang lưu tạm trong bộ nhớ server (giai đoạn chỉ làm UI), sẽ mất khi khởi động lại. Số liệu KPI lấy từ phiếu KPI trong database.</DemoNote>

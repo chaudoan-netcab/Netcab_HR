@@ -1,107 +1,102 @@
 @import "tailwindcss";
+/* Token NETCAB (chép nguyên từ skill netcab-frontend-design — không sửa trong app; cập nhật bằng cách chép lại) */
+@import "../styles/netcab.css";
+@import "../styles/netcab-tailwind.css";
 
-/* Màu theo Netcab Brand Guidelines: xanh Netcab #0B1AA3 (chính), navy #0F1E35, vàng #EFAD06 (điểm nhấn, dùng ít) */
+/* Thang chữ NETCAB: chữ thân 13px (text-sm), chữ phụ 12px (text-xs) */
 @theme {
-  --font-sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
-  --color-brand-50: #f1f3fe;
-  --color-brand-100: #e2e6fc;
-  --color-brand-200: #c5cdf9;
-  --color-brand-500: #3346d3;
-  --color-brand-600: #0b1aa3;
-  --color-brand-700: #091584;
-  --color-brand-900: #0f1e35;
-  --color-accent: #efad06;
-  --color-canvas: #f5f6fa;
+  --text-sm: 0.8125rem;
+  --text-sm--line-height: 1.25rem;
 }
 
-/* Màu biểu đồ (đã kiểm tra mù màu bằng validator của skill dataviz, nền thẻ trắng):
-   thứ tự cố định, không xoay vòng; chữ không bao giờ dùng màu dữ liệu */
-:root {
-  --viz-1: #3346d3; /* xanh Netcab — chuỗi chính */
-  --viz-2: #eb6834; /* cam */
-  --viz-3: #1baf7a; /* xanh ngọc */
-  --viz-4: #eda100; /* vàng */
-  --viz-5: #e87ba4; /* hồng */
-  --viz-neutral: #c3c2b7; /* "chưa gấp", "khác" */
-  /* Thang thứ bậc 1 màu (hạng A → E): đậm = tốt hơn */
-  --seq-600: #184f95;
-  --seq-500: #256abf;
-  --seq-400: #3987e5;
-  --seq-300: #6da7ec;
-  --seq-250: #86b6ef;
-  /* Màu trạng thái — dành riêng, luôn kèm chữ/biểu tượng */
-  --st-good: #0ca30c;
-  --st-warning: #fab219;
-  --st-serious: #ec835a;
-  --st-critical: #d03b3b;
-  /* Khung biểu đồ */
-  --viz-track: #eef0f4;
-  --viz-grid: #eceae4;
-  --viz-axis: #c3c2b7;
-  --viz-target: #52514e;
-}
+/* ───────── Chế độ sáng / tối ─────────
+   Class .dark trên <html> do script trong <head> (app/layout.tsx) đặt theo localStorage "netcab-theme-mode" (light | dark | auto).
+   Màu chỉ lấy từ token NETCAB (src/styles/netcab.css): bg-card, text-muted-foreground, text-status-*-text…
+   Không dùng bảng màu Tailwind (slate, red, emerald…) hay mã hex trong component. */
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+
+/* Logo chỉ có 2 bản: xanh #1302a5 cho nền sáng (.logo-light), trắng cho nền tối (.logo-dark).
+   Đặt hai ảnh cạnh nhau, ẩn một bản theo chế độ sáng/tối — không đổi màu logo bằng filter. */
+.logo-dark { display: none; }
+.dark .logo-light { display: none; }
+.dark .logo-dark { display: block; }
+
+/* Cột thương hiệu trang đăng nhập: sáng --muted, tối xanh thương hiệu đậm (như Netcab SSO) */
+.login-brand { background: var(--muted); }
+.dark .login-brand { background: #0b0733; }
 
 @layer base {
   body {
-    @apply bg-canvas text-slate-800 antialiased;
+    @apply bg-background text-sm text-foreground;
   }
-  h1 { @apply text-xl font-semibold text-brand-900; }
-  h2 { @apply text-base font-semibold text-brand-900; }
-  a { @apply text-brand-600 hover:underline; }
-  :focus-visible { @apply outline-2 outline-offset-2 outline-brand-500; }
+  h1 { @apply text-[18px] leading-tight font-medium text-foreground; }
+  h2 { @apply text-[15px] font-semibold text-foreground; }
+  a { @apply text-primary-text hover:underline; }
+  :focus-visible { @apply outline-2 outline-offset-2 outline-ring; }
 }
 
 @layer components {
-  .card { @apply min-w-0 rounded-xl border border-slate-200 bg-white; }
-  .card-pad { @apply p-5; }
+  /* Khối: phẳng — sáng không viền không bóng, tối có viền mảnh để tách lớp */
+  .card { @apply min-w-0 rounded-[4px] border border-transparent bg-card dark:border-border; }
+  .card-pad { @apply p-5 max-md:p-3; }
+  /* Tiêu đề khối: 13px uppercase */
+  .section-title { @apply text-[13px] font-medium tracking-[0.06em] text-foreground uppercase; }
 
+  /* Nút: cao 34px, bo 4px, chữ 13px một dòng. Mặc định = outline (hành động phụ) */
   .btn {
-    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 no-underline transition hover:bg-slate-50 hover:no-underline disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex h-8.5 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-[4px] border border-border bg-card px-3.5 text-[13px] font-medium text-foreground no-underline transition-colors hover:bg-muted hover:no-underline disabled:cursor-not-allowed disabled:opacity-50;
   }
-  .btn-primary { @apply border-brand-600 bg-brand-600 text-white hover:border-brand-700 hover:bg-brand-700; }
-  .btn-danger { @apply border-red-600 bg-red-600 text-white hover:bg-red-700; }
-  .btn-ghost { @apply border-transparent bg-transparent hover:bg-slate-100; }
-  .btn-sm { @apply px-2.5 py-1 text-xs; }
+  .btn-primary { @apply border-primary bg-primary text-primary-foreground hover:bg-primary/90; }
+  /* Xóa / từ chối: nền đỏ nhạt, chữ đỏ */
+  .btn-danger { @apply border-transparent bg-destructive/10 text-status-danger-text hover:bg-destructive/20; }
+  .btn-ghost { @apply border-transparent bg-transparent hover:bg-muted; }
+  .btn-sm { @apply h-7 px-2.5 text-xs; }
 
-  .label { @apply mb-1 block text-xs font-medium text-slate-600; }
+  /* Form: nhãn trên ô; ô nền trắng viền --input; điện thoại chữ 16px để iOS không tự phóng to */
+  .label { @apply mb-1.5 block text-[13px] font-medium text-foreground; }
   .input {
-    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:bg-slate-100;
+    @apply h-8.5 w-full rounded-[4px] border border-input bg-card px-3 py-1.5 text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:cursor-not-allowed disabled:bg-muted/50 disabled:opacity-50 aria-invalid:border-destructive md:text-sm dark:border-border dark:disabled:bg-black/50;
   }
-  textarea.input { @apply min-h-20; }
+  textarea.input { @apply h-auto min-h-20; }
+  select.input { @apply py-0; }
 
-  .badge { @apply inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium; }
+  /* Trạng thái: chữ nhỏ có màu (màu do Badge / toneClass quyết định), không nền đặc */
+  .badge { @apply inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium; }
 
+  /* Bảng trơn: không kẻ dòng; đầu cột 12px xám; ô 13px; ô đầu/cuối thẳng mép tiêu đề khối */
   .table { @apply w-full text-left text-sm; }
-  .table th { @apply border-b border-slate-200 bg-slate-50/70 px-4 py-2.5 text-xs font-semibold text-slate-500; }
-  .table td { @apply border-b border-slate-100 px-4 py-2.5 align-top; }
-  .table tbody tr:last-child td { @apply border-b-0; }
-  .table tbody tr:hover td { @apply bg-slate-50/70; }
+  .table th { @apply px-3 py-2.5 text-xs font-medium whitespace-nowrap text-muted-foreground; }
+  .table td { @apply px-3 py-2.5 align-top; }
+  .table :is(th, td):first-child { @apply pl-5 max-md:pl-3; }
+  .table :is(th, td):last-child { @apply pr-5 max-md:pr-3; }
+  .table tbody tr:hover td { @apply bg-muted/50; }
 
-  .tab { @apply -mb-px border-b-2 border-transparent px-3 py-2.5 text-sm font-medium text-slate-500 no-underline hover:text-slate-800 hover:no-underline; }
-  .tab-active { @apply border-brand-600 text-brand-700; }
+  /* Tab: chữ 13px; đang chọn chữ màu chính đậm + gạch dưới 2px */
+  .tab { @apply -mb-px border-b-2 border-transparent px-3 py-2.5 text-[13px] font-medium whitespace-nowrap text-muted-foreground no-underline hover:text-foreground hover:no-underline; }
+  .tab-active { @apply border-primary font-semibold text-primary-text hover:text-primary-text; }
 
   .dl { @apply grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3; }
-  .dl dt { @apply text-xs text-slate-500; }
-  .dl dd { @apply font-medium text-slate-800; }
+  .dl dt { @apply text-xs text-muted-foreground; }
+  .dl dd { @apply font-medium text-foreground; }
 
-  /* Thanh nút bấm dính ở đáy vùng nội dung (Lưu, Gửi duyệt…) */
+  /* Thanh nút bấm dính ở đáy vùng nội dung (Lưu, Gửi duyệt…) — lề âm khớp đệm của <main> */
   .action-bar {
-    @apply sticky bottom-0 z-10 -mx-4 -mb-6 mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur md:-mx-8 md:px-8;
+    @apply sticky bottom-0 z-10 -mx-4 -mb-4 mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-border bg-card/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:-mb-6 sm:px-6 lg:-mx-7 lg:-mb-7 lg:px-7;
   }
 }
 
 /* Biểu đồ đổi số liệu mượt khi tự cập nhật; tắt hẳn nếu người dùng chọn giảm chuyển động */
 .viz-anim { transition: width 400ms ease-out, height 400ms ease-out, stroke-dasharray 500ms ease-out, d 400ms ease-out, filter 150ms; }
-@keyframes live-ping { 75%, 100% { transform: scale(2.2); opacity: 0; } }
-.live-ping { animation: live-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite; }
 @media (prefers-reduced-motion: reduce) {
   .viz-anim { transition: none; }
-  .live-ping { animation: none; }
 }
 
 /* Khi in: bỏ khung app, để nội dung tràn hết trang giấy */
 @media print {
   .no-print { display: none !important; }
+  /* In luôn dùng màu sáng, kể cả khi đang bật chế độ tối */
+  html, html.dark { color-scheme: light; }
   html, body { background: white; height: auto; }
   .app-shell, .app-main { display: block !important; height: auto !important; overflow: visible !important; }
   .action-bar { display: none !important; }

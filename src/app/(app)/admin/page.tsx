@@ -43,7 +43,7 @@ function Placeholder({ title, hint, todo }: { title: string; hint: string; todo:
   return (
     <Card>
       <EmptyState title={`${title} — chưa kích hoạt`} hint={hint} />
-      <p className="pb-2 text-center text-xs text-slate-400">{todo}</p>
+      <p className="pb-2 text-center text-xs text-muted-foreground">{todo}</p>
     </Card>
   );
 }
@@ -56,28 +56,28 @@ async function Roles({ meId }: { meId: string }) {
   const linked = new Set(users.map((u) => u.employeeId));
   const roles = Object.entries(roleLabel);
   return (
-    <div className="grid gap-5 lg:grid-cols-3">
-      <Card title="Tài khoản" className="lg:col-span-2" pad={false}>
-        <ul className="divide-y divide-slate-100">
+    <div className="grid gap-5 xl:grid-cols-3">
+      <Card title="Tài khoản" className="xl:col-span-2" pad={false}>
+        <ul className="divide-y divide-border">
           {users.map((u) => (
-            <li key={u.id} className="px-5 py-3">
-              <form action={updateUser.bind(null, u.id)} className="grid items-center gap-2 sm:grid-cols-[1fr_10rem_9rem_auto_auto]">
-                <div>
-                  <div className="font-medium">{u.employee ? `${u.employee.fullName} (${u.employee.code})` : "(không gắn nhân viên)"}</div>
-                  <div className="text-xs text-slate-500">{u.email} · đăng nhập gần nhất {u.lastLoginAt ? fmtDateTime(u.lastLoginAt) : "chưa"}</div>
+            <li key={u.id} className="px-5 py-3 max-md:px-3">
+              <form action={updateUser.bind(null, u.id)} className="grid items-center gap-2 md:grid-cols-[minmax(0,1fr)_10rem_9rem_auto_auto]">
+                <div className="min-w-0 max-md:mb-1">
+                  <div className="font-medium text-foreground">{u.employee ? `${u.employee.fullName} (${u.employee.code})` : "(không gắn nhân viên)"}</div>
+                  <div className="text-xs text-muted-foreground">{u.email} · đăng nhập gần nhất {u.lastLoginAt ? fmtDateTime(u.lastLoginAt) : "chưa"}</div>
                 </div>
                 <select name="role" defaultValue={u.role} className="input" aria-label={`Vai trò của ${u.email}`} disabled={u.id === meId}>
                   {roles.map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select>
                 <input name="password" type="password" placeholder="Mật khẩu mới" className="input" aria-label="Mật khẩu mới" />
-                <label className="flex items-center gap-1 text-sm"><input type="checkbox" name="active" defaultChecked={u.active} disabled={u.id === meId} /> Hoạt động</label>
+                <label className="flex items-center gap-1.5 whitespace-nowrap text-[13px]"><input type="checkbox" name="active" defaultChecked={u.active} disabled={u.id === meId} className="h-4 w-4 accent-primary disabled:cursor-not-allowed" /> Hoạt động</label>
                 {u.id === meId && (
                   <>
                     <input type="hidden" name="role" value={u.role} />
                     <input type="hidden" name="active" value="on" />
                   </>
                 )}
-                <button className="btn btn-sm">Lưu</button>
+                <button className="btn btn-sm justify-self-start">Lưu</button>
               </form>
             </li>
           ))}
@@ -96,9 +96,9 @@ async function Roles({ meId }: { meId: string }) {
           <Field label="Vai trò">
             <select name="role" defaultValue="EMPLOYEE" className="input">{roles.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
           </Field>
-          <button className="btn btn-primary">Tạo</button>
-          <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
-            <b>Vai trò:</b> Nhân viên – việc, KPI, đánh giá của mình · Quản lý – thêm giao việc, giao KPI và xác nhận kết quả trong phạm vi (người làm trưởng phòng tự có quyền Quản lý) · HRM – Trưởng phòng HCNS, xem toàn công ty, xác nhận bảng tổng hợp, duyệt bộ KPI, import chấm công · Quản trị hệ thống – chỉ cấu hình kỹ thuật, không dùng chức năng nghiệp vụ.
+          <button className="btn btn-primary self-start">Tạo</button>
+          <div className="rounded-[4px] bg-muted p-3 text-xs leading-relaxed text-muted-foreground">
+            <b className="font-medium text-foreground">Vai trò:</b> Nhân viên – việc, KPI, đánh giá của mình · Quản lý – thêm giao việc, giao KPI và xác nhận kết quả trong phạm vi (người làm trưởng phòng tự có quyền Quản lý) · HRM – Trưởng phòng HCNS, xem toàn công ty, xác nhận bảng tổng hợp, duyệt bộ KPI, import chấm công · Quản trị hệ thống – chỉ cấu hình kỹ thuật, không dùng chức năng nghiệp vụ.
           </div>
         </form>
       </Card>

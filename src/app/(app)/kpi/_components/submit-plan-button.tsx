@@ -27,7 +27,7 @@ export function SubmitPlanButton({ initialMissing, autoApprove = false }: { init
   return (
     <span ref={ref} className="contents">
       {blocked && (
-        <span id="kpi-missing" role="status" className="flex max-w-xl basis-full items-start gap-1.5 text-xs text-amber-800 sm:basis-auto">
+        <span id="kpi-missing" role="status" className="flex max-w-xl basis-full items-start gap-1.5 text-xs text-status-warning-text sm:basis-auto">
           <AlertTriangle size={14} className="mt-0.5 shrink-0" aria-hidden />
           <span>
             Chưa gửi được: còn {missing.length} chỉ số chưa có số liệu ({missing.join("; ")}). Kiểu đếm vi phạm nhập 0 nếu không có vụ nào.
